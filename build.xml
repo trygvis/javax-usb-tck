@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ 
+/**
+* Copyright (c) 2004, International Business Machines Corporation.
+* All Rights Reserved.
+*
+* This software is provided and licensed under the terms and conditions
+* of the Common Public License:
+* http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
+*/
+ 
+Module Name:  build.xml
+ 
+Description:  primary build.xml
+ 
+Function:     Necessary for the ant build process
+ 
+Dependencies: - Change the basedir="." and Env._BASE_DIR value as appropriate
+              - build.xml should be run from directory which holds: src, docs, lib
+ 
+Restrictions: None.
+ 
+-->
+ 
+<project name="build.xml" default="help"  basedir=".">
+ 
+ 
+    <property name="_BASE_DIR" value="."/>
+ 
+    <property environment="Env"/>
+ 
+    <property name="Env._BASE_DIR"    value="${_BASE_DIR}/src"/>
+    <property name="Env._JDOC_DIR"    value="${_BASE_DIR}/docs/jdoc"/>
+    <property name="Env._JARFILE_DIR" value="${_BASE_DIR}/lib"/>
+ 
+    <property name="Env._DEST_DIR"    value="${Env._BASE_DIR}"/>
+    <property name="Env._SRC_DIR"     value="${Env._BASE_DIR}"/>
+    <property name="Env._JARFILE"     value="javaxusbtck.jar"/>
+    <property name="Env._TCKPATH"     value="javax/usb/tck"/>
+ 
+    <property name="Env._DEPRECATION" value="on"/>
+    <property name="Env._DEBUG"       value="on"/>
+    <property name="Env._OPTIMIZE"    value="on"/>
+    <property name="Env._VERBOSE"     value="off"/>
+    <property name="Env._QUIET"       value="off"/>
+    <property name="Env._COMPRESS"    value="on"/>
+ 
+    <property name="Env._JDOC_WINDOWTITLE" value="JavaDOC for javax.usb TCK API"/>
+    <property name="Env._JDOC_DOCTITLE"    value="javax.usb TCK API"/>
+    <property name="Env._JDOC_PACKAGE"     value="javax.usb.tck"/>
+    <property name="Env._JDOC_BOTTOM"      value="no"/>
+    <property name="Env._JDOC_HEADER"      value="no"/>
+    <property name="Env._JDOC_FOOTER"      value="no"/>
+    <property name="Env._JDOC_VERBOSE"     value="no"/>
+    <property name="Env._JDOC_VERSION"     value="yes"/>
+    <property name="Env._JDOC_AUTHOR"      value="yes"/>
+    <property name="Env._JDOC_NODEPRECATED" value="no"/>
+    <property name="Env._JDOC_NODEPRECATEDLIST" value="no"/>
+    <property name="Env._JDOC_FAILONERROR" value="yes"/>
+    <property name="Env._JDOC_PUBLIC"    value="yes"/>
+    <property name="Env._JDOC_PROTECTED" value="no"/>
+    <property name="Env._JDOC_PRIVATE"   value="no"/>
+    <property name="Env._JDOC_BREAKITERATOR" value="yes"/>
+ 
+    <property name="Env._VERSION_CLASS" value="javax.usb.Version"/>
+ 
+    <!-- Variable defaults -->
+    <property name="_src.dir"     value="${Env._SRC_DIR}"/>
+    <property name="_dest.dir"    value="${Env._DEST_DIR}"/>
+    <property name="_jdoc.dir"    value="${Env._JDOC_DIR}"/>
+    <property name="_jarfile.dir" value="${Env._JARFILE_DIR}"/>
+    <property name="_jarfile"     value="${Env._JARFILE}"/>
+    <property name="_tckpath"     value="${Env._TCKPATH}"/>
+ 
+    <property name="_deprecation" value="${Env._DEPRECATION}"/>
+    <property name="_debug"       value="${Env._DEBUG}"/>
+    <property name="_optimize"    value="${Env._OPTIMIZE}"/>
+    <property name="_verbose"     value="${Env._VERBOSE}"/>
+    <property name="_quiet"       value="${Env._QUIET}"/>
+    <property name="_compress"    value="${Env._COMPRESS}"/>
+ 
+    <property name="_jdoc.package" value="${Env._JDOC_PACKAGE}"/>
+    <property name="_jdoc.windowtitle" value="${Env._JDOC_WINDOWTITLE}"/>
+    <property name="_jdoc.doctitle" value="${Env._JDOC_DOCTITLE}"/>
+    <property name="_jdoc.bottom"   value="${Env._JDOC_BOTTOM}"/>
+    <property name="_jdoc.header"   value="${Env._JDOC_HEADER}"/>
+    <property name="_jdoc.footer"   value="${Env._JDOC_FOOTER}"/>
+    <property name="_jdoc.verbose"  value="${Env._JDOC_VERBOSE}"/>
+    <property name="_jdoc.version"  value="${Env._JDOC_VERSION}"/>
+    <property name="_jdoc.author"   value="${Env._JDOC_AUTHOR}"/>
+    <property name="_jdoc.nodeprecated"     value="${Env._JDOC_NODEPRECATED}"/>
+    <property name="_jdoc.nodeprecatedlist" value="${Env._JDOC_NODEPRECATEDLIST}"/>
+    <property name="_jdoc.failonerror" value="${Env._JDOC_FAILONERROR}"/>
+    <property name="_jdoc.public"    value="${Env._JDOC_PUBLIC}"/>
+    <property name="_jdoc.protected" value="${Env._JDOC_PROTECTED}"/>
+    <property name="_jdoc.private"   value="${Env._JDOC_PRIVATE}"/>
+    <property name="_jdoc.breakiterator" value="${Env._JDOC_BREAKITERATOR}"/>
+ 
+    <property name="_version.class" value="${Env._VERSION_CLASS}"/>
+ 
+    <!-- Show help (the different options for this build.xml) -->
+    <target name="help" description="display descriptions of the main targets">
+                <echo message="Buildfile for javax.usb TCK API"/>
+        <echo message=" "/>
+        <echo message="Syntax: 'ant &lt;target&gt;'"/>
+        <echo message=" "/>
+        <echo message="Specify one of the following as a build &lt;target&gt;"/>
+        <echo message="   all       results in .jar and javadoc being generated"/>
+        <echo message="   clean     wipe out the intermediate build directory and its files"/>
+        <echo message="   compile   build the target files"/>
+                <echo message="   help      Show this help"/>
+        <echo message="   jdoc      builds documentation"/>
+        <echo message="   jars      Create JAR files"/>
+                <echo message=""/>
+    </target>
+ 
+ 
+    <target name="all">
+        <antcall target="jars"/>
+        <antcall target="jdoc"/>
+    </target>
+ 
+    <target name="clean"
+           description="wipe out non-souce files and directories" >
+        <echo message="Cleaning up..."/>
+        <delete verbose="${_verbose}" quiet="${_quiet}" failonerror="false">
+            <fileset dir="${_dest.dir}"    includes="**/*.class"/>
+            <fileset dir="${_jarfile.dir}" includes="${_jarfile}"/>
+        </delete>
+        <antcall target="_delJdoc"/>
+        <echo message="Cleaning up...done"/>
+    </target>
+ 
+ 
+        <!-- Compile source files -->
+    <target name="compile" depends="clean">
+ 
+        <echo message="Compiling javax.usb TCK"/>
+ 
+        <antcall target="-compile.tck"/>
+ 
+    </target>
+ 
+ 
+        <!-- Compile source files into *.class files -->
+    <target name="-compile.tck">
+ 
+        <!-- the standard javax.usb API -->
+        <echo message="Compiling javax.usb TCK API classes"/>
+                <mkdir dir="${_dest.dir}"/>
+        <javac
+            srcdir="${_src.dir}"
+            destdir="${_dest.dir}"
+            deprecation="${_deprecation}"
+            debug="${_debug}"
+            optimize="${_optimize}"
+            verbose="${_verbose}"
+            listfiles="true"
+            includes="${_tckpath}/**">
+        </javac>
+        <echo message="Compiled javax.usb TCK API classes"/>
+ 
+    </target>
+ 
+        <!-- remove files within the javadoc directory -->
+    <target name="_delJdoc">
+        <echo message="Removing any files that exist from within the javadoc directory..."/>
+        <delete verbose="${_verbose}" quiet="${_quiet}" failonerror="false">
+            <fileset dir="${_jdoc.dir}/**"/>
+        </delete>
+    </target>
+ 
+    <!-- Create JavaDOC -->
+    <target name="jdoc">
+        <echo message="Building the documentation..."/>
+                <antcall target="_delJdoc"/>
+        <mkdir dir="${_jdoc.dir}"/>
+        <!--sourcepath="directory before com" -->
+        <!--packagenames="javax.usb.tck.*"-->
+        <javadoc
+            sourcepath="${_src.dir}"
+            packagenames="${_jdoc.package}.*"
+            destdir="${_jdoc.dir}"
+            author="${_jdoc.author}"
+            version="${_jdoc.version}"
+            verbose="${_jdoc.verbose}"
+            Public="${_jdoc.public}"
+            Protected="${_jdoc.protected}"
+            Private="${_jdoc.private}"
+            windowtitle="${_jdoc.windowtitle}"
+            doctitle="${_jdoc.doctitle}"
+            bottom="${_jdoc.bottom}"
+            header="${_jdoc.header}"
+            footer="${_jdoc.footer}"
+            breakiterator="${_jdoc.breakiterator}"
+        />
+        <echo message="Building the documentation...done"/>
+    </target>
+ 
+ 
+    <!-- Create JAR file -->
+    <target name="jars" depends="compile">
+        <mkdir dir="${_jarfile.dir}"/>
+ 
+        <jar jarfile="${_jarfile.dir}/${_jarfile}"
+            basedir="${_dest.dir}"
+            includes="${_tckpath}/**/*.class"/>
+    </target>
+ 
+</project>

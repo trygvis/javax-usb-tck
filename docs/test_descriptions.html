@@ -1,0 +1,142 @@
+<html>
+  <head>
+    <style type="text/css">
+      <!--
+        .javaClassName  { font-family: monospace; text-align: center }
+       -->
+    </style>
+  </head>
+  <body>
+  <title>JAVAX.USB TCK Tests</title>
+    <div align=center>
+      <table border=1>
+        <caption style="font-size: large; font-weight: bold">JAVAX.USB TCK Tests</caption>
+        <tr>
+          <th>Test</th>
+          <th>Performs Tests</th>
+        </tr>
+        <tr>
+          <td class="javaClassName">SignatureTest</td>
+          <td>
+            <ul>
+              <li>This is the API for the entire javax.usb.* package.</li>
+              <li>Verifies existence of all expected public classes and interfaces.</li>
+              <li>Also verifies the existence, correct modifiers, arguments and throws clauses of public constructors and methods for each of the public classes and interfaces.</li>
+              <li>Verifies the existence and correct modifiers of public fields.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">TopologyTest</td>
+          <td>
+            <ul>
+              <li>Verifies that the API can traverse a hierarchical device topology.</li>
+              <li>Verifies that it properly reveals the correct pre-configured topology as defined by the test hardware setup.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">DefaultControlPipeTest</td>
+          <td>
+            <ul>
+              <li>Verifies that ControlTransfers work successfully on the DefaultControlPipe.</li>
+              <li>Verifies that proper events are generated and proper exceptions are thrown during the ControlTransfer operations.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">Control I/O Test</td>
+          <td>
+            <ul>
+              <li>Verifies pipes can be opened on a control endpoint other than endpoint 0.</li>
+              <li>Programmable device used in this test suite does not support control pipes other than the default control pipe.</li>
+              <li>Target device for this test will be any device with at least one non default control pipe.</li>
+              <li>Minimal communication verification will be performed with the non default control pipe endpoint since function will vary with device selected.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">Bulk I/O Test</td>
+          <td>
+            <ul>
+              <li>Verifies IN and OUT pipes can be opened and closed.</li>
+              <li>Verifies that Bulk operations work successfully, proper events are generated and proper executions are thrown in operation.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">Interrupt I/O Test</td>
+          <td>
+            <ul>
+              <li>Verifies IN and OUT pipes can be opened and closed.</li>
+              <li>Verifies that Interrupt operations work successfully, proper events are generated and proper executions are thrown in operation.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">Isochronous I/O Test</td>
+          <td>
+            <ul>
+              <li>Verifies IN and OUT pipes can be opened and closed.</li>
+              <li>Verifies that Isochronous operations work successfully, proper events are generated and proper executions are thrown in operation.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">RequestTest</td>
+          <td>
+            <ul>
+              <li>Verifies methods of the Standard Request class by creating a Request object.</li>
+              <li>Verifies methods of Standard Request send messages to the DefaultControlPipe.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">IRPTest</td>
+          <td>
+            <ul>
+              <li>Verifies the creation of IRP's and Control IRP's from the UsbDevice, UsbPipe, UsbDefaultIrp, UsbDefaultControlIrp classes.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">ConstantsTest</td>
+          <td>
+            <ul>
+              <li>Verifies constants defined in the implementation against those defined in the USB specification.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">HotPlugTest</td>
+          <td>
+            <ul>
+              <li>Verifies that proper UsbSevices and UsbDevice events are generated when devices are attached and detached at runtime.</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td class="javaClassName">Interface Policy Test</td>
+          <td>
+            <ul>
+              <li>Verifies that the non-default UsbInterfacePolicy is being used correctly.</li>
+            </ul>
+          </td>
+        </tr>
+      </table>
+      <br>
+    </div>
+    <p>The full descriptions of each test are defined in the document <a href="tck_spec_javax_usb.pdf">Javax.usb TCK Test Suite</a> </p>	
+    <p>Author: <a href="Tckteam.html">TCK Team</a></p>
+    <div align=center>
+      <hr>
+      <br>
+      <a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="running.html">Running the Tests</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+      Test Descriptions&nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+      <a href="changes.html">Change History</a>
+    </div>
+  </body>
+</html>

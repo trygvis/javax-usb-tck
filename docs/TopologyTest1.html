@@ -1,0 +1,46 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+ 
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>TOPOLOGYTEST1 INSTRUCTIONS</title>
+</head>
+ 
+<body bgcolor="#FFFFFF">
+ 
+<h2 align="center">Instructions to run the Topology Test1</h2>
+ 
+<br>
+ <p>Program the Cypress EZ-USB FX development board with the topology.b6 image. Refer to <a href = "EEPROM.html"> EEPROM Programming Instructions.</a></p>
+<p>Setup the hardware as per the following <a href = "Config1.bmp">Configuration.</a></p>
+<p>Run the following command from the root directory of the extracted archive :
+              /javaxusbtck-1_0>java javax.usb.tck.CONFIG1_TOPOLOGY_B6_IMAGE </p>
+ 
+<p>To be considered compliant with the javax.usb API specification, your implementation
+must pass every test in the suite; that is, there must be 0 failures and 0
+errors. The execution and output would appear similar to the following:</p>
+ 
+<pre>
+javaxusbtck-1_0>java javax.usb.tck.CONFIG1_TOPOLOGY_B6_IMAGE
+..
+Time: 1.602
+
+OK (2 tests)
+</pre>
+ 
+<p>Author: <a href="Tckteam.html">TCK Team</a></p>
+<hr>
+<br>
+<div align="center">
+<a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="running.html">Running the Tests</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="changes.html">Change History</a>
+</div>
+ 
+</body>
+</html>
+ 

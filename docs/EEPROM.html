@@ -1,0 +1,78 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>EEPROM Programming Instructions</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+<h1 align="center">EEPROM Programming Instructions</h1>
+
+<p>Follow the documentation that came with the EZ-USB FX development kit to install the software that comes with the kit.</p>
+<p>The following instructions are based on the EZ-USB Development Tools v2.61.700.  If you are using a different version of the EZ-USB Development Tools, refer to the tool documentation to confirm procedures for programming and erasing the EEPROM.</p>
+
+<p>The EZ-USB Control Panel Application is used to program the EEPROM on the development board.</p>
+
+<h3>Programming the EEPROM:</h3>
+
+<p>To program the EEPROM, select the EEPROM button on the control panel.  Select the EEPROM image to program into the EEPROM.</p>
+
+<h4>EEPROM images:</h4>
+
+<h5> Image used for Topology Test</h5>
+<ul>
+   <li> Topology.b6 (see NOTE below)</li>
+   <li> Hexadecimal digit display is not active</li>
+   <li> Vendor id -- 0x0547; Product id -- 0xFF01  Product string -- JSR80 TCK Device 1</li>
+   <li> The product id, 0xFF01, is not recognized by the EZ-USB general purpose driver (see NOTE  below) </li>
+</ul>
+<h5> Image used for Bulk, Interrupt, and HotPlug Tests</h5>
+<ul>
+   <li> Bulkint.b6</li>
+   <li> Hexadecimal digit display increments by 1</li>
+   <li> Vendor id -- 0x0547; Product id -- 0x1002  Product string -- JSR80 TCK Device 2</li>
+</ul>
+ 
+<h5> Image used for Isochronous and Default Control Pipe Tests</h5>
+<ul>
+    <li> Isodcp.b6  </li>
+    <li> Hexadecimal digit display increments by 2 </li>
+    <li> Vendor id -- 0x0547; Product id -- 0x1002  Product string -- JSR80 TCK Device 3</li>
+</ul>
+
+<p> Once the development board is loaded with an EEPROM image, it can be plugged into any USB port and it will enumerate as the specific USB device required for each test.</p>
+
+<h5> NOTE on Topology.b6 image:</h5>  
+<p> Some of the descriptors defined in DSCR.A51 are not supported by the EZ-USB general purpose driver.  To prevent the driver from binding with the development board when the topology.b6 image is loaded on the EEPROM, the device id is set to 0xFF01 which is not recognized by the ezusb.sys driver.  Since no driver is installed for this device, the new device wizard will start whenever the reset button is pressed on the development board or the device is plugged into a USB port.  No driver needs to be installed, so click cancel to dismiss the wizard.</p>
+
+<h5> Reprogramming the EEPROM when the topology.b6 image is already programmed into it:</h5>
+<p>The EZ-USB Control Panel application will not communicate with the development board if the general purpose driver does not recognize the device.  Since the EZ-USB Control Panel is used to program the EEPROM, the following steps must be performed so that the EZ-USB general purpose driver will recognize the EZ-USB FX development board.</p>
+<ul>
+   <li> Remove the "EEPROM CONNECT" jumper from the EZ-USB Development Board</li>
+   <li> Plug the USB cable from the development board to the computer</li>
+   <li> Replace the "EEPROM CONNECT" jumper</li>
+   <li> Select the Download button on the control panel and select the Vend-Ax.hex file which was installed with the development kit</li>
+   <li> Setup a Vendor Request, by filling in the fields on the "Vend Req" button line as follows:  Req=0xA9; Value=0x0; Index=0xBEEF; Length=1; Dir=0 OUT; Hex Bytes=FF</li>
+   <li> Select the Vend Req button which will program the first byte of the EEPROM to 0xFF which is an unprogrammed EEPROM.(Opt:You can verify that the first byte was programmed with 0xFF by changing setting Dir=1 IN and seeing the byte returned is 0xFF)</li>
+   <li> Press the reset button on the development board or replug the USB cable and the device is now recognized as the built in EZ-USB FX Device</li>
+   <li> This device is recognized by the general purpose driver and the EZ-USB Control Panel application will find the device</li>
+   <li> To program the EEPROM, select the EEPROM button on the control panel</li>
+   <li> Select the EEPROM image to program into the EEPROM</li>
+</ul>
+
+<p>Refer to the documentation in the EZ-USB FX Development Kit (CY3671) for more information.</p>
+
+
+<br>
+<p>Author: <a href="Tckteam.html">TCK TEAM</a></p>
+<hr>
+<br>
+<div align="center">
+<a href = "TopologyTest1.html"> Topology Test 1 </a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href = "TopologyTest2.html"> Topology Test 2 </a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href = "TopologyTest3.html"> Topology Test 3 </a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href = "IsochrDefCtrlPipeTest.html"> Isochronous and Default Control Pipe Image Test</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href = "BulkInterruptTest.html"> Bulk and Interrupt Image Test</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+</div>

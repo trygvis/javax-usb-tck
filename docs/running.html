@@ -1,0 +1,60 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>JAVAX.USB TCK Execution</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h2 align="center">Running the Tests</h2>
+
+<br>
+
+<h3>Test your javax.usb implementation</h3>
+
+<p>To verify your javax.usb implementation against the java.usb TCK, you must 
+run the following tests as specified and verify your results match the expected results listed with each test.</p>
+
+<p><strong>Notes:</strong> The tests in the test suite must be executed from the root
+directory of the extracted archive (e.g. <code>/javaxusbtck-1_0/</code>). </p>
+
+<p> The tests are grouped into test programs based on hardware configuration and EEPROM image required to be programmed into the Cypress EZ-USB FX development board.</p>
+
+<p> The EEPROM images required for each test are located in /javaxusbtck-1_0/images.</p>
+
+<h3> Tests </h3> 
+
+<p><a href = "TopologyTest1.html"> Topology Test 1 </a></p>
+
+<p><a href = "TopologyTest2.html"> Topology Test 2 </a></p>
+
+<p><a href = "TopologyTest3.html"> Topology Test 3 </a></p>
+
+<p><a href = "IsochrDefCtrlPipeTest.html"> Isochronous and Default Control Pipe Image Tests</a></p>
+
+<p><a href = "BulkInterruptTest.html"> Bulk and Interrupt Image Tests</a></p>
+
+
+
+<p><strong>Note:</strong> As noted above, to pass the TCK all tests must run and produce the expected results as specified in this documentation.  However, if you are doing preliminary testing with the TCK and run into errors, before running the next test make sure each USB device is reset to its initial state by unplugging and replugging the device into the USB system.  Alternatively for the Cypress development board, pressing the button labeled "Reset" on the Cypress development board will cause the board to be reset to its initial state.  The Cypress board has completed resetting when the digital counter starts incrementing for the isodpc.b6 and bulkint.b6 images.  If the topology.b6 image is programmed into the board the counter is not used, so wait a few seconds after reset before running the tests.  </p>
+
+
+<br>
+<p>Author: <a href="Tckteam.html">TCK Team </a></p>
+<hr>
+<br>
+<div align="center">
+<a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+Running the Tests&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="changes.html">Change History</a>
+</div>
+
+
+</body>
+</html>
