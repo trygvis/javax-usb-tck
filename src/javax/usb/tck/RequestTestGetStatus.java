@@ -1359,9 +1359,9 @@ public class RequestTestGetStatus extends TestCase
         short expectedLength = 2;
         byte[] expectedData = new byte[expectedLength];
 
-        expectedbmRequestType = expectedbmRequestType |                                       // @P3A
+        expectedbmRequestType = (byte)(expectedbmRequestType |                                // @P3A
                                 UsbConst.REQUESTTYPE_TYPE_STANDARD |                          // @P3A
-                                UsbConst.REQUESTTYPE_DIRECTION_IN;                            // @P3A
+                                UsbConst.REQUESTTYPE_DIRECTION_IN);                           // @P3A
 
         expectedData[1] = (byte)0;
         expectedData[0] = (byte)0;
