@@ -132,7 +132,7 @@ abstract interface TopologyTests
     //**************************************************************************
     // String Descriptor Constants for the programable device
 
-    public static final String APIVersion = "0.10.4-CVS";                                         // @P1C
+    public static final String APIVersion = "1.0.0";                                         // @P1C
     public static final String USBVersion = "1.1";
     public static final String programableStrings[] = {"Manufacturer", 
         "JSR80 TCK Device 1",   "SN123456", "Config 1", "Config 2",
