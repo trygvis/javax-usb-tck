@@ -9,6 +9,15 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------- ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 041222 raulortz Change API Version supported
+ */
+
 /**
  * Topology Tests - Contains constants used for all Topology Tests
  * <p>
@@ -64,11 +73,11 @@ abstract interface TopologyTests
                     (byte) 0x89, (byte) 0x09, (byte) 0x8A, (byte) 0x0A, (byte) 0x8B,
                     (byte) 0x0B, (byte) 0x8C, (byte) 0x0C, (byte) 0x8D, (byte) 0x0D,
                     (byte) 0x8E, (byte) 0x0E, (byte) 0x8F, (byte) 0x0F},{(byte) 0x81,
-                        (byte) 0x01, (byte) 0x82, (byte) 0x02, (byte) 0x83, (byte) 0x03,
-                        (byte) 0x84, (byte) 0x04, (byte) 0x88, (byte) 0x08}}},{{{}},
+                    (byte) 0x01, (byte) 0x82, (byte) 0x02, (byte) 0x83, (byte) 0x03,
+                    (byte) 0x84, (byte) 0x04, (byte) 0x88, (byte) 0x08}}},{{{}},
             {{(byte) 0x83}},{{(byte) 0x85, (byte) 0x05},{(byte) 0x88,
-                        (byte) 0x08, (byte) 0x89},{(byte) 0x81, (byte) 0x83, (byte) 0x85,
-                        (byte) 0x87}}}};
+                    (byte) 0x08, (byte) 0x89},{(byte) 0x81, (byte) 0x83, (byte) 0x85,
+                    (byte) 0x87}}}};
     public static final byte programableEndpointType[][][][] = {{{{(byte) 0x02,
                     (byte) 0x02, (byte) 0x03, (byte) 0x03, (byte) 0x02, (byte) 0x02,
                     (byte) 0x02, (byte) 0x02, (byte) 0x03, (byte) 0x03, (byte) 0x03,
@@ -76,11 +85,11 @@ abstract interface TopologyTests
                     (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01,
                     (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01,
                     (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01},{(byte) 0x03,
-                        (byte) 0x03, (byte) 0x03, (byte) 0x03, (byte) 0x02, (byte) 0x02,
-                        (byte) 0x02, (byte) 0x02, (byte) 0x01, (byte) 0x01}}},{{{}},
+                    (byte) 0x03, (byte) 0x03, (byte) 0x03, (byte) 0x02, (byte) 0x02,
+                    (byte) 0x02, (byte) 0x02, (byte) 0x01, (byte) 0x01}}},{{{}},
             {{(byte) 0x02}},{{(byte) 0x03, (byte) 0x03},{(byte) 0x01,
-                        (byte) 0x01, (byte) 0x01},{(byte) 0x02, (byte) 0x02, (byte) 0x02,
-                        (byte) 0x02}}}};
+                    (byte) 0x01, (byte) 0x01},{(byte) 0x02, (byte) 0x02, (byte) 0x02,
+                    (byte) 0x02}}}};
     public static final byte programableEndpointInter[][][][] = {{{{(byte) 0x00,
                     (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0x00, (byte) 0x00,
                     (byte) 0x00, (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF,
@@ -88,11 +97,11 @@ abstract interface TopologyTests
                     (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01,
                     (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01,
                     (byte) 0x01, (byte) 0x01, (byte) 0x01, (byte) 0x01},{(byte) 0xFF,
-                        (byte) 0x0FF, (byte) 0xFF, (byte) 0x0FF, (byte) 0x00, (byte) 0x00,
-                        (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x01}}},{{{}},
+                    (byte) 0x0FF, (byte) 0xFF, (byte) 0x0FF, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00, (byte) 0x00, (byte) 0x01, (byte) 0x01}}},{{{}},
             {{(byte) 0x00}},{{(byte) 0xFF, (byte) 0xFF},{(byte) 0x01,
-                        (byte) 0x01, (byte) 0x01},{(byte) 0x00, (byte) 0x00, (byte) 0x00,
-                        (byte) 0x00}}}};
+                    (byte) 0x01, (byte) 0x01},{(byte) 0x00, (byte) 0x00, (byte) 0x00,
+                    (byte) 0x00}}}};
 
     //**************************************************************************
     // Device Descriptor Constants of type short for the programable device
@@ -114,8 +123,8 @@ abstract interface TopologyTests
                     (short) 0x0020, (short) 0x0020, (short) 0x0040, (short) 0x0040, 
                     (short) 0x0040, (short) 0x0040, (short) 0x0080, (short) 0x0080,
                     (short) 0x0040, (short) 0x0040},{(short) 0x0040, (short) 0x0040,
-                        (short) 0x0008, (short) 0x0008, (short) 0x0040, (short) 0x0040,
-                        (short) 0x0008, (short) 0x0008, (short) 0x03FF, (short) 0x03FF}}},
+                    (short) 0x0008, (short) 0x0008, (short) 0x0040, (short) 0x0040,
+                    (short) 0x0008, (short) 0x0008, (short) 0x03FF, (short) 0x03FF}}},
         {{{}},{{(short) 0x0040}},{{(short) 0x0010, (short) 0x0010},
                 {(short) 0x0010, (short) 0x0010, (short) 0x0010},
                 {(short) 0x0040, (short) 0x0040, (short) 0x0010, (short) 0x0040}}}};
@@ -123,7 +132,7 @@ abstract interface TopologyTests
     //**************************************************************************
     // String Descriptor Constants for the programable device
 
-    public static final String APIVersion = "0.10.2-CVS";
+    public static final String APIVersion = "0.10.4-CVS";                                         // @P1C
     public static final String USBVersion = "1.1";
     public static final String programableStrings[] = {"Manufacturer", 
         "JSR80 TCK Device 1",   "SN123456", "Config 1", "Config 2",

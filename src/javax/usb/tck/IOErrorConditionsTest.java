@@ -628,6 +628,7 @@ public class IOErrorConditionsTest extends TestCase
                 {
 
                     inIrp = inPipe.createUsbIrp();
+                    inIrp.setData(new byte[inPipe.getUsbEndpoint().getUsbEndpointDescriptor().wMaxPacketSize()]); // @P2A
                     inList.add(inIrp);
                 }
                 inPipe.asyncSubmit(inList);

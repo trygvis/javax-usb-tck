@@ -13,9 +13,12 @@ package javax.usb.tck;
  * Change Activity: See below.
  *
  * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
- * ---- -------- -------- ------ -------  ------------------------------------
+ * ---- -------- -------- ------ -------- ------------------------------------
  * 0000 nnnnnnn           yymmdd          Initial Development
  * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ * $P2           tck.rel1 041222 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
  */
 
 import junit.framework.TestCase;
@@ -79,10 +82,7 @@ public class UsbInterfacePolicyTest extends TestCase
 
         assertTrue("Can't claim Interface, this is probably a defect with your implementation",
                    claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-
-        assertTrue("Force claim tag not set, this probably means the forceClaim method was not called by the implementation",
-                   policy1.getForceClaimTag() );
-
+                                                                                              // @P2D4
         //reset the claim tag
         policy1.setForceClaimTag(false);
 
@@ -113,10 +113,7 @@ public class UsbInterfacePolicyTest extends TestCase
 
         assertTrue("Can't claim Interface, this is probably a defect with your implementation",
                    claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-
-        assertTrue("Force claim tag not set, this probably means the force claim policy isn't being used",
-                   policy1.getForceClaimTag() );
-
+                                                                                              // @P2D4
         //Reset the force claim tag
         policy1.setForceClaimTag(false);
 

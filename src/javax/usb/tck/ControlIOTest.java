@@ -152,8 +152,7 @@ public class ControlIOTest extends TestCase
 
         assertTrue("The configuration, interface & alternate setting for the Control Enpoint isn't active",
                    usbCtrlIOInterface.isActive());
-        assertFalse("The current interface w/the control endpoint is claimed before claim is called",
-                    usbCtrlIOInterface.isClaimed());
+                                                                                              // @P2D2
 
         try
         {

@@ -22,6 +22,9 @@ import java.util.*;
  * ---- -------- -------- ------ -------  ------------------------------------
  * 0000 nnnnnnn           yymmdd          Initial Development
  * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ * $P2           tck.rel1 041222 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
  */
  
 /**
@@ -391,10 +394,7 @@ public class IrpTest extends TestCase
             UsbInterface iface = usbConfiguration.getUsbInterface((byte)0);
             try
             {
-                if ( iface.isClaimed() )
-                    iface.release();
- 
-                assertFalse("isClaimed() should be false): ", iface.isClaimed());
+                                                                                              // @P2D4
                 iface.claim();
                 assertTrue("isClaimed() should be true): ", iface.isClaimed());
                 endpoints = iface.getUsbEndpoints();

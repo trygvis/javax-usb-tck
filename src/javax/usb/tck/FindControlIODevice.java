@@ -10,6 +10,17 @@ package javax.usb.tck;
  *
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------- ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 041222 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ */
+
 import java.util.*;
 import javax.usb.*;
 import javax.usb.util.*;
@@ -43,7 +54,7 @@ public class FindControlIODevice extends Object
 
     /**
      * Creates and returns the sole instance of the FindControlIODevice class.
-     * @return
+     * @return FindControlIODevice
      */
     public static FindControlIODevice getInstance()
     {
@@ -73,7 +84,7 @@ public class FindControlIODevice extends Object
     /**
      * Finds the first device with a Control Pipe other than the default Control
      * Pipe and returns it.  Returns null if no such device is found.
-     * @return
+     * @return UsbDevice
      */
     public UsbDevice getControlIODevice()
     {
@@ -93,8 +104,7 @@ public class FindControlIODevice extends Object
                 System.out.println("List Empty");
             }
             return null;
-        }
-        else
+        } else
         {
             // return the first item
             return(UsbDevice)usbDevices.get(0);
@@ -104,7 +114,7 @@ public class FindControlIODevice extends Object
     /**
      * Finds a list of devices with a Control Pipe other than the default Cotrol
      * Pipe and returns it.  Returns null if no devices are found.
-     * @return
+     * @return UsbDevice
      */
     public List getControlIODevicesList()
     {
@@ -152,12 +162,10 @@ public class FindControlIODevice extends Object
         try
         {
             services = UsbHostManager.getUsbServices();
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             throw new RuntimeException("Error : " + uE.getMessage());
-        }
-        catch ( SecurityException sE )
+        } catch ( SecurityException sE )
         {
             throw new RuntimeException("Error : " + sE.getMessage());
         }
@@ -177,12 +185,10 @@ public class FindControlIODevice extends Object
         try
         {
             virtualRootUsbHub = services.getRootUsbHub();
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             throw new RuntimeException("Error : " + uE.getMessage());
-        }
-        catch ( SecurityException sE )
+        } catch ( SecurityException sE )
         {
             throw new RuntimeException("Error : " + sE.getMessage());
         }
@@ -246,7 +252,7 @@ public class FindControlIODevice extends Object
      * Gets the first UsbEndpoint of type ENDPOINT_TYPE_CONTROL that is not
      * UsbEndpoint0 on the first UsbDevice to have such an endpoint.
      * @param usbDevice The UsbDevice to check.
-     * @return
+     * @return UsbEndpoint
      */
     public static UsbEndpoint getControlIOEndpoint(UsbDevice usbDevice)
     {
@@ -270,19 +276,9 @@ public class FindControlIODevice extends Object
             UsbConfigurationDescriptor usbCurrentConfigDescriptor;
 
             usbCurrentConfig = usbDevice.getUsbConfiguration((byte) (i+1));
+            if ( usbCurrentConfig == null) continue;                                          // @P1A
             usbCurrentConfigDescriptor = usbCurrentConfig.getUsbConfigurationDescriptor();
-            if ( !usbCurrentConfig.isActive() )
-            {
-                try
-                {
-                    StandardRequest.setConfiguration(usbDevice,
-                                                     usbCurrentConfigDescriptor.bConfigurationValue());
-                }
-                catch ( UsbException uE )
-                {
-                    throw new RuntimeException("Error : " + uE.getMessage());
-                }
-            }
+                                                                                              // @P1D11
             for ( int j=0; j<usbCurrentConfigDescriptor.bNumInterfaces(); j++ )
             {
                 UsbInterface usbCurrentInterface;

@@ -13,8 +13,11 @@ package javax.usb.tck;
  * Change Activity: See below.
  *
  * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
- * ---- -------- -------- ------ -------  ------------------------------------
+ * ---- -------- -------- ------ -------- ------------------------------------
  * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 050110 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
  */
 
 import java.io.*;
@@ -487,9 +490,8 @@ public class TopologyTestConfig3Limited extends TestCase implements TopologyTest
          * expected values from the programmable device
          */
         usbProgramableRequests = new StandardRequest(usbProgramableDevice);
-        usbListUsbConfigs = usbProgramableDevice.getUsbConfigurations();
-        assertEquals("The # Configs from getUsbConfigurations doesn't match the programable device",
-                     programableNumConfigurations, usbListUsbConfigs.size());
+        usbListUsbConfigs = usbProgramableDevice.getUsbConfigurations();                      // @P1D2
+        
         for ( int i = 0; i < usbListUsbConfigs.size(); i++ )
         {
             UsbConfiguration usbCurrentConfig = null;
