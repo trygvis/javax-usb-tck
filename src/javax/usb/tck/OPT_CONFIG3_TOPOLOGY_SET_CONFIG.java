@@ -14,9 +14,9 @@ package javax.usb.tck;
  *
  * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
  * ---- -------- -------- ------ -------- ------------------------------------
- * 0000 nnnnnnn           yymmdd          Initial Development
- * $P1           tck.rel1 040916 raulortz Redesign TCK to create base and optional
- *                                        tests. Separate setConfig, setInterface
+ * 0000          tck.rel1 040916 raulortz Initial Development. Redesign TCK to 
+ *                                        create base and optional tests. 
+ *                                        Separate setConfig, setInterface
  *                                        and isochronous transfers as optionals.
  */
  
@@ -26,14 +26,12 @@ import junit.framework.*;
  * This class executes the following tests of the Javax.usb TCK Test Suite:
  * <ul>
  * <li> Signature Test
- * <li> IRP Test
- * <li> Interface Policy Test
- * <li> Default Control Pipe Test
+ * <li> Request Test Get and Set Configuration
  * </ul>
- * @author Leslie K. Blair
+ * @author Raul Ortiz
  */
  
-public class CONFIG3_ISODCP_B6_IMAGE extends TestCase
+public class OPT_CONFIG3_TOPOLOGY_SET_CONFIG extends TestCase
 {
     public static Test suite()
     {
@@ -44,16 +42,7 @@ public class CONFIG3_ISODCP_B6_IMAGE extends TestCase
         //Each method beginning with testXXX() in the specified class will
         //be called as a separate test.
         testSuite.addTestSuite(SignatureTest.class);
-        testSuite.addTestSuite(IrpTest.class);
-	testSuite.addTestSuite(UsbInterfacePolicyTest.class);
-        // Moved isochronous tests into the optional isochronous tests                           @P1D3
-        testSuite.addTestSuite(DefaultControlPipeTestIRP.class);
-        testSuite.addTestSuite(DefaultControlPipeTestIRPwithSynchronizedUsbDevice.class);
-        testSuite.addTestSuite(DefaultControlPipeTestIRPList.class);
-        testSuite.addTestSuite(DefaultControlPipeTestIRPListwithSynchronizedUsbDevice.class);
-        testSuite.addTestSuite(DefaultControlPipeTestErrorConditions.class);
-        testSuite.addTestSuite(DefaultControlPipeTestErrorConditionswithSynchronizedUsbDevice.class);
-	 
+        testSuite.addTestSuite(RequestTestGetSetConfiguration.class);
         return testSuite;
     }
  

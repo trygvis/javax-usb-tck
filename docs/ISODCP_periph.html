@@ -1,0 +1,688 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>Modify Files for Building Images</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h2 align="center">Modify PERIPH.C for ISODCP.B6 Image</h2>
+
+<br>
+
+<p>The periph.c file holds the hooks that are necessary to implement USB peripheral 
+functions and these hooks must be fleshed out, in order to work with the JSR80 
+javax.USB TCK implementation.  Some of the code listed below will actually be 
+incorporated into functions that already exist in the periph.c file, while other 
+sections of code contain new functions and variables that are unique to this JSR80 
+javax.USB TCK implementation.  Please follow the instructions below to set up the 
+periph.c framework file for the ISODCP image.</p>
+
+<p>Please navigate first to the PERIPH.C file that is located (following completion of 
+step 1 of the "Steps to Build EEPROM Images") in the subdirectory C:\TCK\ISODCP. </p>
+
+<p>Now, follow the steps listed below to add the necessary lines to PERIPH.C</p>
+
+
+<p><strong>Steps to Modify PERIPH.C:</strong><p>
+
+<ol>
+  <li>Rename the file periph.c to the new name isodcp.c.  This will prevent confusion 
+    among the different implementations of the periph.c file for the different images.
+
+  <li>In the header comments, change the "File:" name to isodcp.c.
+
+  <li>In the header comments, modify the "Contents" entry to read the following:
+	<blockquote>      
+        <font size=2>
+          //  Contents:     Function required for JSR80--javax.usb TCK for the bulk
+      <br>//                and interrupt I/O tests.
+      <br>//                This file is based on the file, periph.c.
+
+        </font>
+    </blockquote>
+
+    <li>Add the following lines right after the last #include statement at the top 
+    of this module, which is "#include "ezregs.h"".
+    <blockquote>
+        <font size=2>
+      //-----------------------------------------------------------------------------
+      <br>// Macros
+      <br>//-----------------------------------------------------------------------------
+      <br>#define min(a,b) (((a)<(b))?(a):(b))
+      <br>#define max(a,b) (((a)>(b))?(a):(b))
+        </font>
+    </blockquote>
+
+  <li>Add the following lines right after the last variable declaration at the top 
+    of this module, which is "BYTE    AlternateSetting;".  These lines represent new 
+    code that is unique to this JSR Javax.usb implementation.
+    <blockquote>
+        <font size=2>
+        <br>//-----------------------------------------------------------------------------
+        <br>// Start javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb prototypes
+        <br>//-----------------------------------------------------------------------------
+        <br>void moveOUTArrayToINArrayIso(BYTE * OUTBuffer, WORD bytecount, BYTE * INBuffer, WORD * pINByteCount);
+        <br> 
+        <br>void passthrough (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD* manipulatedData_length);
+        <br>void invert_bits (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD* manipulatedData_length);
+        <br>void invert_alternate_bits (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD* manipulatedData_length);
+        <br>void drop_every_third (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD* manipulatedData_length);
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb prototypes
+        <br>//-----------------------------------------------------------------------------
+        <br>#define PASSTHROUGH_TRANSFORM 1
+        <br>#define INVERT_BITS_TRANSFORM 2
+        <br>#define INVERT_ALT_BITS_TRANSFORM 3
+        <br>#define DROP_EVERY_THIRD_TRANSFORM 4
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// The ***SZ #defines must match the same named equ in dscr.a51
+        <br>//-----------------------------------------------------------------------------
+        <br> 
+        <br>#define EP8INSZ      16
+        <br>#define EP8OUTSZ     16
+        <br>#define EP9INSZ      16
+        <br>#define EP9OUTSZ     16
+        <br>#define EP10INSZ     32
+        <br>#define EP10OUTSZ    32
+        <br>#define EP11INSZ     32
+        <br>#define EP11OUTSZ    32
+        <br>#define EP12INSZ     64
+        <br>#define EP12OUTSZ    64
+        <br>#define EP13INSZ     64
+        <br>#define EP13OUTSZ    64
+        <br>#define EP14INSZ    128
+        <br>#define EP14OUTSZ   128
+        <br>#define EP15INSZ     64
+        <br>#define EP15OUTSZ    64
+        <br> 
+        <br>#define EP1023OUTSZ 0x03FF
+        <br> 
+        <br>#define TCMS 500                  // Time constant in milliseconds (incremented in SOF ISR)
+        <br> 
+        <br>#define EP0DATA_MAX_LENGTH 255
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb defines for unique vendor commands
+        <br>//-----------------------------------------------------------------------------
+        <br>#define VR_TRANSFERDATA 0xB0
+        <br>#define VR_TRANSFERIN 0x80
+        <br>#define VR_TRANSFEROUT 0x0
+        <br>#define EP0BUFSZ  64
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb variables
+        <br>//-----------------------------------------------------------------------------
+        <br>BYTE bEP1023OUTAD;
+        <br> 
+        <br> 
+        <br>BYTE bEP8OUTAD;
+        <br>BYTE bEP9OUTAD;
+        <br>BYTE bEP10OUTAD;
+        <br>BYTE bEP11OUTAD;
+        <br>BYTE bEP12OUTAD;
+        <br>BYTE bEP13OUTAD;
+        <br>BYTE bEP14OUTAD;
+        <br>BYTE bEP15OUTAD;
+        <br>BYTE bEP8INAD;
+        <br>BYTE bEP9INAD;
+        <br>BYTE bEP10INAD;
+        <br>BYTE bEP11INAD;
+        <br>BYTE bEP12INAD;
+        <br>BYTE bEP13INAD;
+        <br>BYTE bEP14INAD;
+        <br>BYTE bEP15INAD;
+        <br> 
+        <br>char count;                      // incrementing count value to display
+        <br>int tick;                        // Num milliseconds since count changed
+        <br> 
+        <br>char xdata Digit[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x98,0x88,0x83,0xc6,0xa1,0x86,0x8e};
+        <br>BYTE xdata myOutdata[1023];             // Stores the isochronous out transfer data
+        <br>BYTE xdata myIndata[1023];              // Stores the isochronous in transfer data
+        <br>BYTE xdata EP0DATA[EP0DATA_MAX_LENGTH];
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb functions
+        <br>//-----------------------------------------------------------------------------
+        <br>// Display Hex method
+        <br>void display_hex (char val)             // display one hex digit (over i2c bus)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (I2CS &amp; bmSTOP);          // wait for STOP bit LOW--last operation complete
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I2CS = 0x80;                            // set the START bit
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I2DAT = 0x42;                           // IO expander address=42, LSB=0 for write
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (!(I2CS &amp; bmDONE));       // wait for DONE=1 (i2c transmit complete)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I2DAT = val;                            // send the data byte
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (!(I2CS &amp; bmDONE));       // wait for DONE=1 (i2c transmit complete)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I2CS = 64;                              // set the STOP bit
+        <br>}
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// passthrough--data is moved, unchanged, from one buffer to another
+        <br>//-----------------------------------------------------------------------------
+        <br>void passthrough ( BYTE* inputdata,  WORD inputdata_length, BYTE* manipulatedData,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD* manipulatedData_length)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*manipulatedData_length = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i &lt; inputdata_length; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manipulatedData[i] = inputdata[i];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*manipulatedData_length)++;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// invert_bits--data is moved, with all bits inverted, from one buffer to another
+        <br>//-----------------------------------------------------------------------------
+        <br>void invert_bits (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD* manipulatedData_length)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*manipulatedData_length = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i &lt; inputdata_length; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manipulatedData[i] = ~inputdata[i];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*manipulatedData_length)++;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// invert_alternate_bits--data is moved, with every odd bit inverted, from one buffer to another
+        <br>//-----------------------------------------------------------------------------
+        <br>void invert_alternate_bits (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD* manipulatedData_length)
+        <br>{
+        <br>#define INVERTMASK  0x55
+        <br>#define UNCHANGEDMASK 0xAA
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE unchangedbits;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE invertedbits;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*manipulatedData_length = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i &lt; inputdata_length; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unchangedbits = inputdata[i] &amp; UNCHANGEDMASK;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;invertedbits = ~inputdata[i] &amp; INVERTMASK;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manipulatedData[i] = unchangedbits | invertedbits;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*manipulatedData_length)++;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// drop_every_third--data is moved, dropping every third byte from the source, from one 
+        <br>// buffer to another
+        <br>//-----------------------------------------------------------------------------
+        <br>void drop_every_third (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData,
+                               WORD* manipulatedData_length)
+        <br>{
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int j;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int dropped_bytes = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i &lt; inputdata_length; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;j = i + 1;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((j%3) != 0)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manipulatedData[i-dropped_bytes] = inputdata[i];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dropped_bytes++;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*manipulatedData_length = i-dropped_bytes;
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// moveOUTArrayToINArrayIso--call the correct transform and move the data
+        <br>//    The first byte of the OUTBuffer indicates the transform type
+        <br>//-----------------------------------------------------------------------------
+        <br>void moveOUTArrayToINArrayIso(BYTE * OUTBuffer, WORD bytecount, BYTE * INBuffer, WORD * pINByteCount)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (OUTBuffer[0]) //first byte of IRP is transform type
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case PASSTHROUGH_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;passthrough (OUTBuffer, bytecount, INBuffer, pINByteCount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case INVERT_BITS_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;invert_bits (OUTBuffer, bytecount, INBuffer, pINByteCount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case INVERT_ALT_BITS_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;invert_alternate_bits(OUTBuffer, bytecount, INBuffer, pINByteCount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case DROP_EVERY_THIRD_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drop_every_third(OUTBuffer, bytecount, INBuffer, pINByteCount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;passthrough (OUTBuffer, bytecount, INBuffer, pINByteCount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// End javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <br>
+    <font size=4>
+    <p><strong>NOTE: The next 4 steps explain how to flesh out the hooks that already 
+    exist in the initial periph.c file.</strong>
+    </p>
+    </font>
+    <br>
+
+    <li>Please add the following lines to the "void TD_Init(void)" function, directly 
+    after the local variable declaration "Rwuen = TRUE;":
+    <blockquote>
+        <font size=2>
+        <br>//-----------------------------------------------------------------------------
+        <br>// Start javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>//-----------------------------------------------------------------------------
+        <br>// Enable endpoints and set isochronous addresses
+        <br>//-----------------------------------------------------------------------------
+        <br>// Enable Isochronous IN Endpoints
+        <br>INISOVAL = bmEP8 | bmEP9 | bmEP10 | bmEP11 | bmEP12 | bmEP13 | bmEP14 | bmEP15;
+        <br>// Enable Isochronous OUT Endpoints
+        <br>OUTISOVAL = bmEP8 | bmEP9 | bmEP10 | bmEP11 | bmEP12 | bmEP13 | bmEP14 | bmEP15;
+        <br>bEP8OUTAD &nbsp;&nbsp; = &nbsp;&nbsp; 0;
+        <br>bEP9OUTAD &nbsp;&nbsp; = &nbsp;&nbsp; bEP8OUTAD + (EP8OUTSZ>>2);
+        <br>bEP10OUTAD &nbsp;&nbsp;  = &nbsp;&nbsp; bEP9OUTAD + (EP9OUTSZ>>2);
+        <br>bEP11OUTAD &nbsp;&nbsp;  = &nbsp;&nbsp; bEP10OUTAD + (EP10OUTSZ>>2);
+        <br>bEP12OUTAD &nbsp;&nbsp;  = &nbsp;&nbsp; bEP11OUTAD + (EP11OUTSZ>>2);
+        <br>bEP13OUTAD &nbsp;&nbsp;  = &nbsp;&nbsp; bEP12OUTAD + (EP12OUTSZ>>2);
+        <br>bEP14OUTAD &nbsp;&nbsp;  = &nbsp;&nbsp; bEP13OUTAD + (EP13OUTSZ>>2);
+        <br>bEP15OUTAD &nbsp;&nbsp;  = &nbsp;&nbsp; bEP14OUTAD + (EP14OUTSZ>>2);
+        <br>bEP8INAD   &nbsp;&nbsp;&nbsp;  = &nbsp;&nbsp; bEP15OUTAD + (EP15OUTSZ>>2);
+        <br>bEP9INAD   &nbsp;&nbsp;&nbsp;  = &nbsp;&nbsp; bEP8INAD + (EP8INSZ>>2);
+        <br>bEP10INAD  &nbsp;&nbsp;  = &nbsp;&nbsp; bEP9INAD + (EP9INSZ>>2);
+        <br>bEP11INAD  &nbsp;&nbsp;  = &nbsp;&nbsp; bEP10INAD + (EP10INSZ>>2);
+        <br>bEP12INAD  &nbsp;&nbsp;  = &nbsp;&nbsp; bEP11INAD + (EP11INSZ>>2);
+        <br>bEP13INAD  &nbsp;&nbsp;  = &nbsp;&nbsp; bEP12INAD + (EP12INSZ>>2);
+        <br>bEP14INAD  &nbsp;&nbsp;  = &nbsp;&nbsp; bEP13INAD + (EP13INSZ>>2);
+        <br>bEP15INAD  &nbsp;&nbsp;  = &nbsp;&nbsp; bEP14INAD + (EP14INSZ>>2);
+        <br>IN8ADDR=bEP8INAD; &nbsp;&nbsp;&nbsp;&nbsp;     // EP8IN starting address
+        <br>OUT8ADDR=bEP8OUTAD; &nbsp;&nbsp;&nbsp;&nbsp;   // EP8OUT starting address
+        <br>IN9ADDR=bEP9INAD; &nbsp;&nbsp;&nbsp;&nbsp;     // EP9IN starting address
+        <br>OUT9ADDR=bEP9OUTAD; &nbsp;&nbsp;&nbsp;&nbsp;   // EP9OUT starting address
+        <br>IN10ADDR=bEP10INAD; &nbsp;&nbsp;&nbsp;&nbsp;   // EP10IN starting address
+        <br>OUT10ADDR=bEP10OUTAD; &nbsp;&nbsp;&nbsp;&nbsp; // EP10OUT starting address
+        <br>IN11ADDR=bEP11INAD; &nbsp;&nbsp;&nbsp;&nbsp;   // EP11IN starting address
+        <br>OUT11ADDR=bEP11OUTAD; &nbsp;&nbsp;&nbsp;&nbsp; // EP11OUT starting address
+        <br>IN12ADDR=bEP12INAD; &nbsp;&nbsp;&nbsp;&nbsp;   // EP12IN starting address
+        <br>OUT12ADDR=bEP12OUTAD; &nbsp;&nbsp;&nbsp;&nbsp; // EP12OUT starting address
+        <br>IN13ADDR=bEP13INAD;  &nbsp;&nbsp;&nbsp;&nbsp;  // EP13IN starting address
+        <br>OUT13ADDR=bEP13OUTAD; &nbsp;&nbsp;&nbsp;&nbsp; // EP13OUT starting address
+        <br>IN14ADDR=bEP14INAD;  &nbsp;&nbsp;&nbsp;&nbsp;  // EP14IN starting address
+        <br>OUT14ADDR=bEP14OUTAD; &nbsp;&nbsp;&nbsp;&nbsp; // EP14OUT starting address
+        <br>IN15ADDR=bEP15INAD;  &nbsp;&nbsp;&nbsp;&nbsp;  // EP15IN starting address
+        <br>OUT15ADDR=bEP15OUTAD; &nbsp;&nbsp;&nbsp;&nbsp; // EP15OUT starting address
+        <br>
+        <br>//ISOSEND0 bit in USBPAIR default set to 0;
+        <br>//Do not respond to IN token if no bytes loaded in to INnDATA in previous frame.
+        <br>//This is default behavior.
+        <br>USBPAIR |= bmISOSEND0;
+        <br>USBIEN = bmSOF;                         // Enable SOF interrupt
+        <br>EUSB=1;                                 // Enable all USB (INT2) interrupts
+        <br>EA = 1;                                 // Enable 8051 interrupts
+        <br>tick = 0;                               // Counter for # ms passed since count
+        <br>                                        // was incremented
+        <br>count = 0;                              // Current hex value from 0..F displayed
+        <br>display_hex(Digit[count]);              // displays the current count
+        <br>
+        <br>//-----------------------------------------------------------------------------
+        <br>// End javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void TD_Poll(void)" function:
+    <blockquote>
+        <font size=2>
+        <br>//-----------------------------------------------------------------------------
+        <br>// Start javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>//-----------------------------------------------------------------------------
+        <br>// Display hex digit every TCMS milliseconds
+        <br>//-----------------------------------------------------------------------------
+        <br>EUSB=0;                                 // turn off USB (SOF) interrupt
+        <br>if (tick &gt; TCMS)                        // if enough ms have passed...
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tick=0;                         // set the ms counter back to zero
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count++;                        // increment the count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count++;                        // increment the count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//for isochronous--increment the count by 3
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count &amp;= 0x0F;                  // ensures the count remains a single hex digit
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_hex(Digit[count] );     // displays count
+        <br>}
+        <br>EUSB=1;                                 // USB interrupts back on
+        <br>//-----------------------------------------------------------------------------
+        <br>// End javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "BOOL DR_VendorCmnd(void)" function.  
+    Please delete the current body of the "BOOL DR_VendorCmnd(void)" function.  These 
+    new lines will completely replace the current body of this function, which is one 
+    line "return(TRUE);".
+    <blockquote>
+        <font size=2>
+        <br>//-----------------------------------------------------------------------------
+        <br>// Start javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>//Fields of SETUPDAT[]
+        <br>//byte 0: bmRequestType  Vendor request to device
+        <br>//byte 1: bRequest  transfer data 0xB0
+        <br>//byte 2: wValueL   data out=0x00 data in= 0x80
+        <br>//byte 3: wValueH
+        <br>//byte 4: wIndexL   index in array at which to start transferring data
+        <br>//byte 5: wIndexH
+        <br>//byte 6: wLengthL  length of data to be transferred
+        <br>//byte 7: wLengthH
+        <br> 
+        <br>WORD wValue;
+        <br>WORD wLength;
+        <br>WORD wIndex;
+        <br>int i;
+        <br>WORD len;
+        <br>WORD addr;
+        <br>WORD bc;
+        <br>WORD lengthOUTdata;
+        <br>
+        <br>//The only bRequest recognized is to transfer data;
+        <br>//otherwise, return true.
+        <br>if (SETUPDAT[1] == VR_TRANSFERDATA)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wValue = SETUPDAT[3] &lt;&lt; 8;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wValue = wValue + SETUPDAT[2];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wLength = SETUPDAT[7] &lt;&lt; 8;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wLength = wLength + SETUPDAT[6];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wIndex = SETUPDAT[5] &lt;&lt; 8;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wIndex = wIndex + SETUPDAT[4];
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = wLength;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addr = wIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lengthOUTdata = EP0DATA[addr + 1] &lt;&lt; 8;            //get high byte of OUT data length
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lengthOUTdata = lengthOUTdata + EP0DATA[addr + 2]; //get low byte of OUT data length
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// For transfer in, read from buffer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(wValue == (WORD) VR_TRANSFERIN)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (len &gt; EP0DATA_MAX_LENGTH)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_STALL_EP0();    //length exceeds max buffer size allowable
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (lengthOUTdata &lt; len)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = lengthOUTdata;          //limit length returned to actual length of data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//sent from host on OUT
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(len)                      // Move requested data through EP0IN
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// one packet at a time.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(len &lt; EP0BUFSZ)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bc = len;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bc = EP0BUFSZ;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(i=0; i &lt; bc; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN0BUF[i] = EP0DATA[addr+i];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN0BC = (BYTE)bc; // Arm endpoint
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addr += bc;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len -= bc;
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// NOTE: New TNG Rev
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//ChipRev = GET_CHIP_REV();
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//if(ChipRev <= EZUSB_CHIPREV_B)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//      while(EP0CS &amp; 0x02);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//else // Rev C and above
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(EP0CS &amp; 0x04);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// For transfer out, write to buffer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if(wValue == (WORD) VR_TRANSFEROUT)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (len &gt; EP0DATA_MAX_LENGTH)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_STALL_EP0();    //length exceeds max buffer size allowable
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(len)                                      // Move new data through EP0OUT
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{                                                       // one packet at a time.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Arm endpoint - do it here to clear (after sud avail)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT0BC = 0;  // Clear bytecount to allow new data in; also stops NAKing
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// NOTE: New TNG Rev
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//ChipRev = GET_CHIP_REV();
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//if(ChipRev &lt;= EZUSB_CHIPREV_B)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//      while(OUT0CS &amp; 0x02);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//else  // Rev C and above
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while(EP0CS &amp; 0x08);
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bc = OUT0BC; // Get the new bytecount
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for(i=0; i &lt; bc; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EP0DATA[addr+i] = OUT0BUF[i];
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;addr += bc;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len -= bc;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return(FALSE); //vendor request recognized
+        <br>}
+        <br>else
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return(TRUE); //invalid vendor request
+        <br>}
+        <br>//-----------------------------------------------------------------------------
+        <br>// End javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Sof(void) interrupt 0" 
+    Interrupt Handler routine, right before the line "EZUSB_IRQ_CLEAR();":
+    <blockquote>
+        <font size=2>
+        <br>//-----------------------------------------------------------------------------
+        <br>// Start javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>//-----------------------------------------------------------------------------
+        <br>// For isochronous transfers, move OUT data to corresponding IN endpoint,
+        <br>// transforming data as required
+        <br>//-----------------------------------------------------------------------------
+        <br>register WORD j;                                                // create word counter j
+        <br>
+        <br>register WORD OUTbytecount;
+        <br>register WORD INbytecount;
+        <br>
+        <br>if (!(ZBCOUT &amp; bmEP8))          //data available in OUTnDATA
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//isochronous IRPs are no larger than the maxPacketSize of the endpoint
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//therefore, we won't get the size of the OUT data from the 2nd and 3rd bytes
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// of the OUT data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTbytecount = (OUT8BCH &lt;&lt; 8) + OUT8BCL;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; OUTbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myOutdata[j] = OUT8DATA;               // read in all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArrayIso(myOutdata, OUTbytecount, myIndata, &INbytecount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; INbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN8DATA = myIndata[j];               // write out all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br>
+        <br>if (!(ZBCOUT &amp; bmEP9))          //data available in OUTnDATA
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTbytecount = (OUT9BCH &lt;&lt; 8) + OUT9BCL;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; OUTbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myOutdata[j] = OUT9DATA;               // read in all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArrayIso(myOutdata, OUTbytecount, myIndata, &INbytecount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; INbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN9DATA = myIndata[j];               // write out all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br>
+        <br>if (!(ZBCOUT &amp; bmEP10))          //data available in OUTnDATA
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTbytecount = (OUT10BCH &lt;&lt; 8) + OUT10BCL;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; OUTbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myOutdata[j] = OUT10DATA;               // read in all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArrayIso(myOutdata, OUTbytecount, myIndata, &INbytecount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; INbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN10DATA = myIndata[j];               // write out all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br>
+        <br>if (!(ZBCOUT &amp; bmEP11))          //data available in OUTnDATA
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTbytecount = (OUT11BCH &lt;&lt; 8) + OUT11BCL;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; OUTbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myOutdata[j] = OUT11DATA;               // read in all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArrayIso(myOutdata, OUTbytecount, myIndata, &INbytecount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; INbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN11DATA = myIndata[j];               // write out all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br>
+        <br>if (!(ZBCOUT &amp; bmEP12))          //data available in OUTnDATA
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTbytecount = (OUT12BCH &lt;&lt; 8) + OUT12BCL;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; OUTbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myOutdata[j] = OUT12DATA;               // read in all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArrayIso(myOutdata, OUTbytecount, myIndata, &INbytecount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; INbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN12DATA = myIndata[j];               // write out all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br>
+        <br>if (!(ZBCOUT &amp; bmEP13))          //data available in OUTnDATA
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTbytecount = (OUT13BCH &lt;&lt; 8) + OUT13BCL;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; OUTbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myOutdata[j] = OUT13DATA;               // read in all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArrayIso(myOutdata, OUTbytecount, myIndata, &INbytecount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; INbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN13DATA = myIndata[j];               // write out all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br>
+        <br>if (!(ZBCOUT &amp; bmEP14))          //data available in OUTnDATA
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTbytecount = (OUT14BCH &lt;&lt; 8) + OUT14BCL;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; OUTbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myOutdata[j] = OUT14DATA;               // read in all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArrayIso(myOutdata, OUTbytecount, myIndata, &INbytecount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; INbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN14DATA = myIndata[j];               // write out all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br>
+        <br>
+        <br>if (!(ZBCOUT &amp; bmEP15))         //data available in OUTnDATA
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTbytecount = (OUT15BCH &lt;&lt; 8) + OUT15BCL;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; OUTbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;myOutdata[j] = OUT15DATA;               // read in all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArrayIso(myOutdata, OUTbytecount, myIndata, &INbytecount);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0;j &lt; INbytecount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN15DATA = myIndata[j];               // write out all the available data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br>
+        <br>
+        <br>tick++;                                         // increment the ms counter
+        <br>//-----------------------------------------------------------------------------
+        <br>// End javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+</ol>
+
+
+<br>
+<p>Author: <a href="Tckteam.html">TCK Team</a></p>
+<hr>
+<br>
+<div align="center">
+<p><a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="images.html">Building the Images</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="running.html">Running the Tests</a>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+<a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="changes.html">Change History</a>
+</div>
+
+</body>
+</html>

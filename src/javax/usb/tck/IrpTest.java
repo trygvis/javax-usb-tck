@@ -14,6 +14,15 @@ import java.util.*;
  * of the Common Public License:
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
+
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ */
  
 /**
 * IRP Test
@@ -73,6 +82,10 @@ public class IrpTest extends TestCase
         {
             fail("UsbException: " + ue);
         }
+        catch ( UsbDisconnectedException uDE )                                                // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
         catch ( Exception e )
         {
             fail("Exception: " + e);
@@ -129,6 +142,10 @@ public class IrpTest extends TestCase
         {
             fail("UsbException: " + ue);
         }
+        catch ( UsbDisconnectedException uDE )                                                // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
         catch ( Exception e )
         {
             fail("Exception: " + e);
@@ -406,6 +423,10 @@ public class IrpTest extends TestCase
             {
                 fail("UsbException: " + ue);
             }
+            catch ( UsbDisconnectedException uDE )                                            // @P1A
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
             catch ( Exception e )
             {
                 fail("Exception: " + e);

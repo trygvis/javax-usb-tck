@@ -4,29 +4,32 @@
 <head>
 <meta http-equiv="Content-Type"
 content="text/html; charset=iso-8859-1">
-<title>TOPOLOGYTEST3 INSTRUCTIONS</title>
+<title>SETINTERFACETEST INSTRUCTIONS</title>
 </head>
  
 <body bgcolor="#FFFFFF">
  
-<h2 align="center">Instructions to run the Topology Test3</h2>
+<h2 align="center">Instructions to run the Set Interface Optional Test</h2>
  
 <br>
- <p>Program the Cypress EZ-USB FX development board with the topology.b6 image. Refer to <a href = "EEPROM.html"> EEPROM Programming Instructions.</a></p>
+<p>If your javax.usb implementation supports SetInterface capability, it must pass this test.</p>
+<p>Program the Cypress EZ-USB FX development board with the topology.b6 image. Refer to <a href = "EEPROM.html"> EEPROM Programming Instructions.</a></p>
 <p>Setup the hardware as per the following <a href = "Config3.bmp">Configuration.</a></p>
 <p>Run the following command from the root directory of the extracted archive :
-              /javaxusbtck-1_0>java javax.usb.tck.CONFIG3_TOPOLOGY_B6_IMAGE </p>
+              /javaxusbtck-1_0>java javax.usb.tck.OPT_CONFIG3_TOPOLOGY_SET_INTERFACE </p>
  
 <p>To be considered compliant with the javax.usb API specification, your implementation
 must pass every test in the suite; that is, there must be 0 failures and 0
 errors. The execution and output would appear similar to the following:</p>
  
 <pre>
-javaxusbtck-1_0>java javax.usb.tck.CONFIG3_TOPOLOGY_B6_IMAGE
-.......................
-Time: 44.301
+javaxusbtck-1_0>java javax.usb.tck.OPT_CONFIG3_TOPOLOGY_SET_INTERFACE
+...
+Time: 32.65
+
+OK (3 tests)
  
-OK (23 tests)
+
 </pre>
  
 <p>Author: <a href="Tckteam.html">TCK Team</a></p>

@@ -9,6 +9,18 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ * $P2           tck.rel1 040916 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ */
+
 import java.util.*;
 import javax.usb.*;
 import javax.usb.util.*;
@@ -57,21 +69,26 @@ public class IOErrorConditionsTest extends TestCase
 
     protected void tearDown() throws Exception {
         printDebug("tearDown");
-        if ( (outPipe!=null)&&(outPipe.isOpen()) )
-        {
-            outPipe.abortAllSubmissions();
-            IOMethods.closePipe(outPipe);
-        }
-        if ( (inPipe!=null)&&(inPipe.isOpen()) )
-        {
-            inPipe.abortAllSubmissions();
-            IOMethods.closePipe(inPipe);
-        }
-        if ( (myIface!=null)&&(myIface.isClaimed()) )
-        {
-            IOMethods.releaseInterface(myIface);
-        }
-
+        try                                                                                   // @P1A
+        {                                                                                     // @P1A
+            if ( (outPipe!=null)&&(outPipe.isOpen()) )                                        // @P1C
+            {                                                                                 // @P1C
+                outPipe.abortAllSubmissions();                                                // @P1C
+                IOMethods.closePipe(outPipe);                                                 // @P1C
+            }                                                                                 // @P1C
+            if ( (inPipe!=null)&&(inPipe.isOpen()) )                                          // @P1C
+            {                                                                                 // @P1C
+                inPipe.abortAllSubmissions();                                                 // @P1C
+                IOMethods.closePipe(inPipe);                                                  // @P1C
+            }                                                                                 // @P1C
+            if ( (myIface!=null)&&(myIface.isClaimed()) )                                     // @P1C
+            {                                                                                 // @P1C
+                IOMethods.releaseInterface(myIface);                                          // @P1C
+            }                                                                                 // @P1C
+        } catch ( UsbDisconnectedException uDE )                                              // @P1A
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         super.tearDown();
     }
@@ -89,19 +106,16 @@ public class IOErrorConditionsTest extends TestCase
         if ( testType == bulkTest )
         {
             doTestNullDataBufferInIrp(UsbConst.ENDPOINT_TYPE_BULK);
-        }
-        else if ( testType == intTest )
+        } else if ( testType == intTest )
         {
 
             doTestNullDataBufferInIrp(UsbConst.ENDPOINT_TYPE_INTERRUPT);
 
-        }
-        else if ( testType == isochronousTest )
+        } else if ( testType == isochronousTest )
         {
             doTestNullDataBufferInIrp(UsbConst.ENDPOINT_TYPE_ISOCHRONOUS);
 
-        }
-        else
+        } else
         {
             fail("Test is defined for only bulk and isochronous endpoints.");
         }
@@ -115,18 +129,15 @@ public class IOErrorConditionsTest extends TestCase
         if ( testType == bulkTest )
         {
             doTestNullDataBufferAsByteArray(UsbConst.ENDPOINT_TYPE_BULK);
-        }
-        else if ( testType == intTest )
+        } else if ( testType == intTest )
         {
             doTestNullDataBufferAsByteArray(UsbConst.ENDPOINT_TYPE_INTERRUPT);
 
-        }
-        else if ( testType == isochronousTest )
+        } else if ( testType == isochronousTest )
         {
             doTestNullDataBufferAsByteArray(UsbConst.ENDPOINT_TYPE_ISOCHRONOUS);
 
-        }
-        else
+        } else
         {
             fail("Test is defined for only bulk and isochronous endpoints.");
         }
@@ -142,16 +153,13 @@ public class IOErrorConditionsTest extends TestCase
         {
 
             doTestActionAgainstClosePipeAbortAllSubmissions(UsbConst.ENDPOINT_TYPE_BULK);
-        }
-        else if ( testType == intTest )
+        } else if ( testType == intTest )
         {
             doTestActionAgainstClosePipeAbortAllSubmissions(UsbConst.ENDPOINT_TYPE_INTERRUPT);
-        }
-        else if ( testType == isochronousTest )
+        } else if ( testType == isochronousTest )
         {
             doTestActionAgainstClosePipeAbortAllSubmissions(UsbConst.ENDPOINT_TYPE_ISOCHRONOUS);
-        }
-        else
+        } else
         {
             fail("Test is defined for only bulk and isochronous endpoints.");
         }
@@ -168,16 +176,13 @@ public class IOErrorConditionsTest extends TestCase
         {
 
             doTestActionAgainstClosePipeSubmit(UsbConst.ENDPOINT_TYPE_BULK);
-        }
-        else if ( testType == intTest )
+        } else if ( testType == intTest )
         {
             doTestActionAgainstClosePipeSubmit(UsbConst.ENDPOINT_TYPE_INTERRUPT);
-        }
-        else if ( testType == isochronousTest )
+        } else if ( testType == isochronousTest )
         {
             doTestActionAgainstClosePipeSubmit(UsbConst.ENDPOINT_TYPE_ISOCHRONOUS);
-        }
-        else
+        } else
         {
             fail("Test is defined for only bulk and isochronous endpoints.");
         }
@@ -195,16 +200,13 @@ public class IOErrorConditionsTest extends TestCase
         if ( testType == bulkTest )
         {
             doTestClosePipePendingAction(UsbConst.ENDPOINT_TYPE_BULK);
-        }
-        else if ( testType == intTest )
+        } else if ( testType == intTest )
         {
             doTestClosePipePendingAction(UsbConst.ENDPOINT_TYPE_INTERRUPT);
-        }
-        else if ( testType == isochronousTest )
+        } else if ( testType == isochronousTest )
         {
             doTestClosePipePendingAction(UsbConst.ENDPOINT_TYPE_ISOCHRONOUS);
-        }
-        else
+        } else
         {
             fail("Test is defined for only bulk and isochronous endpoints.");
         }
@@ -222,16 +224,13 @@ public class IOErrorConditionsTest extends TestCase
         {
 
             doTestOpenPipeOnInactiveAlternateSetting(UsbConst.ENDPOINT_TYPE_BULK);
-        }
-        else if ( testType == intTest )
+        } else if ( testType == intTest )
         {
             doTestOpenPipeOnInactiveAlternateSetting(UsbConst.ENDPOINT_TYPE_INTERRUPT);
-        }
-        else if ( testType == isochronousTest )
+        } else if ( testType == isochronousTest )
         {
             doTestOpenPipeOnInactiveAlternateSetting(UsbConst.ENDPOINT_TYPE_ISOCHRONOUS);
-        }
-        else
+        } else
         {
             fail("Test is defined for only bulk and isochronous endpoints.");
         }
@@ -247,16 +246,13 @@ public class IOErrorConditionsTest extends TestCase
         {
 
             doTestOpenPipeOnUnclaimedInterface(UsbConst.ENDPOINT_TYPE_BULK);
-        }
-        else if ( testType == intTest )
+        } else if ( testType == intTest )
         {
             doTestOpenPipeOnUnclaimedInterface(UsbConst.ENDPOINT_TYPE_INTERRUPT);
-        }
-        else if ( testType == isochronousTest )
+        } else if ( testType == isochronousTest )
         {
             doTestOpenPipeOnUnclaimedInterface(UsbConst.ENDPOINT_TYPE_ISOCHRONOUS);
-        }
-        else
+        } else
         {
             fail("Test is defined for only bulk and isochronous endpoints.");
         }
@@ -289,25 +285,25 @@ public class IOErrorConditionsTest extends TestCase
                            myIface.isClaimed());
                 myIface.claim();
                 fail("should caused UsbClaimException!");
-            }
-            catch ( UsbClaimException uce )
+            } catch ( UsbClaimException uce )
             {
 
                 usbe = true;
-            }
-            catch ( UsbException ue )
+            } catch ( UsbException ue )
             {
                 fail("UsbClaimException expected.  unexpected UsbException!" + ue);
-            }
-            catch ( Exception e )
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            } catch ( Exception e )                                                           // @P1C
             {
                 fail("UsbClaimException expected.  unexpected Exception" + e);
             }
+
             if ( !usbe )
                 assertTrue("Test Claim an already claimed interface did not throw UsbNotClaimedException!", false);
 
-        }
-        else
+        } else
         {
             fail("device is not configured!");
         }
@@ -368,9 +364,8 @@ public class IOErrorConditionsTest extends TestCase
 
             assertFalse("could not find output endpoint", null == outEndpoint);
 
-            IOMethods.claimInterface(myIface);
+                                                                                              // @P2D4
             assertTrue("Interface was not claimed!", myIface.isClaimed());
-
 
             //we have an endpoint; now try submitting a null byte array and an IRP
             //with a null data
@@ -385,16 +380,16 @@ public class IOErrorConditionsTest extends TestCase
             {
                 outPipe.syncSubmit(nullBuffer);
                 fail("Expected a UsbException when submitting a null byte array.");
-            }
-            catch ( IllegalArgumentException iAE )
+            } catch ( IllegalArgumentException iAE )
             {
                 usbe = true;
-            }
-            catch ( UsbException uE )
+            } catch ( UsbException uE )
             {
                 fail("java.lang.IllegalArgumentException was expected.  Unexpected UsbException on submitting null buffer:" + uE);
-            }
-            catch ( Exception e )
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            } catch ( Exception e )                                                           // @P1C
             {
                 fail("java.lang.IllegalArgumentException was expected.  Unexpected generic exception." + e);
             }
@@ -402,8 +397,7 @@ public class IOErrorConditionsTest extends TestCase
             assertTrue("java.lang.IllegalArgumentException not received when submitting a null byte []", usbe);
 
 
-        }
-        else
+        } else
         {
             fail ("UsbDevice is not configured!");
         }
@@ -431,9 +425,8 @@ public class IOErrorConditionsTest extends TestCase
 
             assertFalse("could not find output endpoint", null == outEndpoint);
 
-            IOMethods.claimInterface(myIface);
+                                                                                              // @P2D4
             assertTrue("Interface was not claimed!", myIface.isClaimed());
-
 
             //we have an endpoint; now try submitting a null byte array and an IRP
             //with a null data
@@ -456,24 +449,23 @@ public class IOErrorConditionsTest extends TestCase
                 fail("Expected a UsbException when setting null data in IRP.");
                 outPipe.syncSubmit(usbIrp);
                 fail("Expected a UsbException when submitting an IRP with a null byte array in IRP.");
-            }
-            catch ( IllegalArgumentException iAE )
+            } catch ( IllegalArgumentException iAE )
             {
                 usbe = true;
-            }
-            catch ( UsbException uE )
+            } catch ( UsbException uE )
             {
                 fail("java.lang.IllegalArgumentException was expected.  Unexpected UsbException on settin null data in IRP:" + uE);
-            }
-            catch ( Exception e )
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            } catch ( Exception e )                                                           // @P1C
             {
                 fail("java.lang.IllegalArgumentException was expected.  Unexpected generic exception." + e);
             }
 
             assertTrue("java.lang.IllegalArgumentException not received when submitting a null byte [] in IRP", usbe);
 
-        }
-        else
+        } else
         {
             fail ("UsbDevice is not configured!");
         }
@@ -498,16 +490,12 @@ public class IOErrorConditionsTest extends TestCase
 
             outEndpoint = getEndpointOfType(usbDevice, endpointType, UsbConst.REQUESTTYPE_DIRECTION_OUT);
 
-
-
-
             assertFalse("could not find output endpoint", null == outEndpoint);
             outPipe = outEndpoint.getUsbPipe();
             assertTrue("output pipe is not active!!!", outPipe.isActive());
             assertFalse("pipe should not be open.", outPipe.isOpen());
 
-            //claim the interface
-            IOMethods.claimInterface(myIface);
+                                                                                              // @P2D4
             assertTrue("Interface was not claimed!", myIface.isClaimed());
 
 
@@ -516,12 +504,13 @@ public class IOErrorConditionsTest extends TestCase
                 outPipe.abortAllSubmissions();  // should throw UsbNotOpenException
                 assertFalse("Pipe should have been closed at this part of the test.", outPipe.isOpen());
                 fail("abortAllSumissions should have thrown a UsbNotOpenException when called on a closed pipe.");
-            }
-            catch ( UsbNotOpenException ue )
+            } catch ( UsbNotOpenException ue )
             {
                 usbe = true;
-            }
-            catch ( Exception e )
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            } catch ( Exception e )                                                           // @P1C
             {
                 fail ("UsbNotOpenException was expected.  Unexpected exception:  " + e);
             }
@@ -555,16 +544,12 @@ public class IOErrorConditionsTest extends TestCase
 
             outEndpoint = getEndpointOfType(usbDevice, endpointType, UsbConst.REQUESTTYPE_DIRECTION_OUT);
 
-
-
-
             assertFalse("could not find output endpoint", null == outEndpoint);
             outPipe = outEndpoint.getUsbPipe();
             assertTrue("output pipe is not active!!!", outPipe.isActive());
             assertFalse("pipe should not be open.", outPipe.isOpen());
 
-            //claim the interface
-            IOMethods.claimInterface(myIface);
+                                                                                              // @P2D4
             assertTrue("Interface was not claimed!", myIface.isClaimed());
 
 
@@ -574,12 +559,14 @@ public class IOErrorConditionsTest extends TestCase
                 outPipe.syncSubmit(data);
                 assertFalse("Pipe should have been closed at this part of the test.", outPipe.isOpen());
                 fail("Submit should have thrown a UsbNotOpenException when called on a closed pipe.");
-            }
-            catch ( UsbNotOpenException ue )
+            } catch ( UsbNotOpenException ue )
             {
                 usbe = true;
-            }
-            catch ( Exception e )
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            } catch ( Exception e )                                                           // @P1A
+            
             {
                 fail ("UsbNotOpenException was expected.  Unexpected exception:  " + e);
             }
@@ -618,16 +605,13 @@ public class IOErrorConditionsTest extends TestCase
 
             inEndpoint = getEndpointOfType(usbDevice, endpointType, UsbConst.REQUESTTYPE_DIRECTION_IN);
 
-
             assertFalse("could not find endpoint", null == inEndpoint);
-
 
             inPipe = inEndpoint.getUsbPipe();
             assertTrue("output pipe is not active!!!", inPipe.isActive());
             assertFalse("pipe should not be open.", inPipe.isOpen());
 
-            //claim the interface
-            IOMethods.claimInterface(myIface);
+                                                                                              // @P2D4
             assertTrue("Interface was not claimed!", myIface.isClaimed());
 
             //	open the pipe
@@ -649,13 +633,14 @@ public class IOErrorConditionsTest extends TestCase
                 inPipe.asyncSubmit(inList);
                 inPipe.close();                 // should throw UsbException
                 fail ("UsbException should have been thrown when closing pipe with pending submissions.");
-            }
-            catch ( UsbException ue )
+            } catch ( UsbException ue )
             {
                 usbe = true;
 
-            }
-            catch ( Exception e )
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            } catch ( Exception e )                                                           // @P1C
             {
                 fail("Unexpected Exception:  " + e);
             }
@@ -663,8 +648,7 @@ public class IOErrorConditionsTest extends TestCase
                 assertTrue("Test Close Pipe With Pending Operations usbPipe.close() did not throw UsbException!", false);
 
 
-        }
-        else
+        } else
         {
             fail ("UsbDevice is not configured!");
         }
@@ -693,18 +677,13 @@ public class IOErrorConditionsTest extends TestCase
 
 
                 assertFalse("could not find endpoint", null == inEndpoint);
-                //select other alternate setting so that the pipes will now be on an inactive 
-                //interface (actually, inactive alternate setting
-                IOMethods.selectAlternateSetting(usbDevice,(byte) 1, (byte) 0, (byte) 0);
-            }
-            else
+                                                                                              // @P2D3
+            } else
             {
 
 
                 assertFalse("could not find endpoint", null == inEndpoint);
-                //select other alternate setting so that the pipes will now be on an inactive 
-                //interface (actually, inactive alternate setting
-                IOMethods.selectAlternateSetting(usbDevice,(byte) 1, (byte) 0, (byte) 1);
+                                                                                              // @P2D3
             }
 
             inPipe = inEndpoint.getUsbPipe();
@@ -718,21 +697,20 @@ public class IOErrorConditionsTest extends TestCase
                 {
                     inPipe.open();
                     fail("should caused UsbNotActiveException!");
-                }
-                catch ( UsbNotActiveException ue )
+                } catch ( UsbNotActiveException ue )
                 {
                     usbe = true;
-                }
-                catch ( UsbException ue )
+                } catch ( UsbException ue )
                 {
                     fail("UsbNotActiveException was expected.  Unexpected UsbException: " + ue);
-                }
-                catch ( Exception e )
+                } catch ( UsbDisconnectedException uDE )                                      // @P1C
+                {                                                                             // @P1A
+                    fail ("A connected device should't throw the UsbDisconnectedException!"); // @P1A
+                } catch ( Exception e )                                                       // @P1C
                 {
                     fail("UsbNotActiveException was expected.  Unexpected Exception: " + e);
                 }
-            }
-            else
+            } else
             {
                 fail("Interface should have been inactive at this point.");
             }
@@ -766,6 +744,21 @@ public class IOErrorConditionsTest extends TestCase
 
             assertFalse("could not find endpoint", null == inEndpoint);
 
+                                                                                              // @P2D4
+            try
+            {
+                inEndpoint.getUsbInterface().release();
+            } catch ( UsbClaimException ue )
+            {
+                fail("The interface should have been durring getEndpointOfType method call!"); 
+            } catch ( UsbException ue )
+            {
+                fail("Unexpected exception: " + ue);
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
+
             if ( myIface.isActive() )
             {
                 inPipe = inEndpoint.getUsbPipe();
@@ -778,16 +771,16 @@ public class IOErrorConditionsTest extends TestCase
                     inPipe.open();
                     fail("should caused UsbNotClaimedException!");
 
-                }
-                catch ( UsbNotClaimedException ue )
+                } catch ( UsbNotClaimedException ue )
                 {
                     usbe = true;
-                }
-                catch ( UsbException ue )
+                } catch ( UsbException ue )
                 {
                     fail("UsbNotClaimedException was expected.  Unexpected UsbException: " + ue);
-                }
-                catch ( Exception e )
+                } catch ( UsbDisconnectedException uDE )                                      // @P1C
+                {                                                                             // @P1A
+                    fail ("A connected device should't throw the UsbDisconnectedException!"); // @P1A
+                } catch ( Exception e )                                                       // @P1A
                 {
                     fail("UsbNotClaimedException was expected.  Unexpected Exception: " + e);
 
@@ -888,7 +881,7 @@ public class IOErrorConditionsTest extends TestCase
         {
 
             UsbConfiguration usbConfiguration = usbDevice.getUsbConfiguration((byte) 1);
-            IOMethods.selectAlternateSetting(usbDevice,(byte) 1, (byte) 0, (byte) 1);
+            IOMethods.selectAlternateSetting(usbDevice, (byte) 1, (byte) 0, (byte) 1);
 
             myIface = usbConfiguration.getUsbInterface((byte) 0);
 
@@ -904,8 +897,7 @@ public class IOErrorConditionsTest extends TestCase
                                     8);
             assertFalse("could not find endpoint", null == endpoint);
 
-        }
-        else
+        } else
         {
 
             UsbConfiguration usbConfiguration =
@@ -913,7 +905,7 @@ public class IOErrorConditionsTest extends TestCase
 
 
 
-            IOMethods.selectAlternateSetting(usbDevice,(byte) 1, (byte) 0, (byte) 0);
+            IOMethods.selectAlternateSetting(usbDevice, (byte) 1, (byte) 0, (byte) 0);
 
             myIface = usbConfiguration.getUsbInterface((byte) 0);
 

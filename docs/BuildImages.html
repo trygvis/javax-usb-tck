@@ -1,0 +1,223 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>Compiling Images for Cypress Development Board</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h2 align="center">Compiling EEPROM Images</h2>
+
+<br>
+
+<p>In order to run the JSR80 javax.USB TCK Tests, the EEPROMs of the Cypress Development
+Boards must be programmed with the appropriate images.</p>
+  
+<p>The following is an explanation of how to build the three images supported by the 
+JSR80 javax.USB TCK: BULKINT.B6, ISODCP.B6, TOPOLOGY.B6.</p>
+
+<p><strong>Note: These are the images that will be used in the next step, Step 4: 
+             "Program the Cypress EZ-USB FX Development board with an Image"
+             </strong></p>
+
+
+<p><strong>Steps to Build the BULKINT.B6 Image:</strong><p>
+
+<ol>
+  <li>Open a DOS Command Prompt Window.
+  <li>Navigate to the BULKINT Image subdirectory, C:/TCK/BULKINT, which was created
+     following completion of step 1 of the "Steps to Build EEPROM Images."
+  <li>Type the following at the command prompt: bulkint.
+  <li>To check the success of the compilation, please review the output generated 
+     on the command window.  If any of the compilation lines indicate that one or more
+     Errors were generated while building a file, the entire build of that Image failed.  
+     Please address the problem with the file that did not compile cleanly and repeat 
+     this process.
+     <blockquote>
+     <br>Below is an example of the first few lines of a <u>successful compilation</u>:
+     <br>
+         <font size=2>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A51 MACRO ASSEMBLER V7.07 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
+         </font>
+     <br>
+     <br>
+     <br>The following is an example of the first few lines of an <u>unsuccessful compilation</u>:
+     <br>
+         <font size=2>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** WARNING C318 IN LINE 12 OF fw.c: can't open file 'ezusb.h'
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** ERROR C129 IN LINE 47 OF EZREGS.H: missing ';' before 'OUT7BUF'
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  1 WARNING(S),  1 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** WARNING C318 IN LINE 10 OF bulkint.c: can't open file 'ezusb.h'
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** ERROR C129 IN LINE 47 OF EZREGS.H: missing ';' before 'OUT7BUF'
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  1 WARNING(S),  1 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A51 MACRO ASSEMBLER V7.07 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
+     <br>
+         </font>
+     </blockquote>
+</ol>
+
+<p><strong>Steps to Build the ISODCP.B6 Image:</strong><p>
+
+<ol>
+  <li>Open a DOS Command Prompt Window.
+  <li>Navigate to the ISODCP Image subdirectory, C:/TCK/ISODCP, which was created
+     following completion of step 1 of the "Steps to Build EEPROM Images."
+  <li>Type the following at the command prompt: isodcp.
+  <li>To check the success of the compilation, please review the output generated 
+     on the command window.  If any of the compilation lines indicate that one or more
+     Errors were generated while building a file, the entire build of that Image failed.  
+     Please address the problem with the file that did not compile cleanly and repeat 
+     this process.
+     <blockquote>
+     <br>Below is an example of the first few lines of a <u>successful compilation</u>:
+     <br>
+         <font size=2>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A51 MACRO ASSEMBLER V7.07 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
+         </font>
+     <br>
+     <br>
+     <br>The following is an example of the first few lines of an <u>unsuccessful compilation</u>:
+     <br>
+         <font size=2>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** WARNING C318 IN LINE 12 OF fw.c: can't open file 'ezusb.h'
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** ERROR C129 IN LINE 47 OF EZREGS.H: missing ';' before 'OUT7BUF'
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  1 WARNING(S),  1 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** WARNING C318 IN LINE 10 OF isodcp.c: can't open file 'ezusb.h'
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** ERROR C129 IN LINE 47 OF EZREGS.H: missing ';' before 'OUT7BUF'
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  1 WARNING(S),  1 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A51 MACRO ASSEMBLER V7.07 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
+     <br>
+         </font>
+     </blockquote>
+</ol>
+
+<p><strong>Steps to Build the TOPOLOGY.B6 Image:</strong><p>
+
+<ol>
+  <li>Open a DOS Command Prompt Window.
+  <li>Navigate to the TOPOLOGY Image subdirectory, C:/TCK/TOPOLOGY, which was created
+     following completion of step 1 of the "Steps to Build EEPROM Images."
+  <li>Type the following at the command prompt: topology.
+  <li>To check the success of the compilation, please review the output generated 
+     on the command window.  If any of the compilation lines indicate that one or more
+     Errors were generated while building a file, the entire build of that Image failed.  
+     Please address the problem with the file that did not compile cleanly and repeat 
+     this process.
+     <blockquote>
+     <br>Below is an example of the first few lines of a <u>successful compilation</u>:
+     <br>
+         <font size=2>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A51 MACRO ASSEMBLER V7.07 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
+         </font>
+     <br>
+     <br>
+     <br>The following is an example of the first few lines of an <u>unsuccessful compilation</u>:
+     <br>
+         <font size=2>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** WARNING C318 IN LINE 12 OF fw.c: can't open file 'ezusb.h'
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** ERROR C129 IN LINE 47 OF EZREGS.H: missing ';' before 'OUT7BUF'
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  1 WARNING(S),  1 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILER V7.06 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** WARNING C318 IN LINE 8 OF periph.c: can't open file 'ezusb.h'
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*** ERROR C129 IN LINE 47 OF EZREGS.H: missing ';' before 'OUT7BUF'
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;C51 COMPILATION COMPLETE.  1 WARNING(S),  1 ERROR(S)
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;A51 MACRO ASSEMBLER V7.07 - SN: D1S6U-K7179U
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;COPYRIGHT KEIL ELEKTRONIK GmbH 1987 - 2003
+     <br>
+     <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ASSEMBLY COMPLETE.  0 WARNING(S), 0 ERROR(S)
+     <br>
+     <br>
+         </font>
+     </blockquote>
+</ol>
+
+
+
+<br>
+<p>Author: <a href="Tckteam.html">TCK Team</a></p>
+<hr>
+<br>
+<div align="center">
+<p><a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="images.html">Building the Images</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="running.html">Running the Tests</a>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+<a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="changes.html">Change History</a>
+</div>
+
+</body>
+</html>
+

@@ -9,6 +9,21 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------- ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ * $P2           tck.rel1 040916 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ * $P3           tck.rel1 300916 raulortz Change code to check RECIPIENT, DIRECTION
+ *                                        and TYPE in the verification of bmRequestType
+ * $P4           tck.rel1 300916 raulortz Clear global variables and wait for new data
+ *                                        or error event occurred when needed
+ */
 
 import javax.usb.*;
 import javax.usb.event.*;
@@ -48,10 +63,10 @@ public class RequestTestSetClearFeature extends TestCase
     public void testSetAndClearFeatureStatic()
     {
         /* The methods being tested are:
-         * public static void setFeature(UsbDevice usbDevice, byte recipient, 
+         * public static void setFeature(UsbDevice usbDevice, byte recipient,
          *                                                short featureSelector, short target)
          *                             throws usbException, IllegalArgumentException
-         * 
+         *
          * public static void clearFeature(UsbDevice usbDevice, byte recipient,
          * 												 short featureSelector, short target)
          * 							throws usbException, IllegalArgumentException
@@ -73,33 +88,16 @@ public class RequestTestSetClearFeature extends TestCase
 
         configurationNumber = 1;
         //set recipientType to Device
-        recipientType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;      
+        recipientType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
         //set featureSelection to Device Remote Wakeup
         featureSelection = UsbConst.FEATURE_SELECTOR_DEVICE_REMOTE_WAKEUP;
         target = 0;
         wIndex = 0;
         statusExpected = 2;
         LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;             
+        LastUsbDeviceErrorEvent = null;
 
-
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-
-            LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null; 
-
+                                                                                              // @P2D16
             try
             {
 
@@ -137,21 +135,41 @@ public class RequestTestSetClearFeature extends TestCase
 
             /* Verify proper listener event received */
             assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);        
+            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
+            verifySetFeatureIrp(recipientType, featureSelection, wIndex);                     // @P4A
+            
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            try                                                                               // @P2A
+	    {                                                                                 // @P2A
+                status = StandardRequest.getStatus(usbDevice, recipientType, target);
+                try                                                                           // @P4A
+                {                                                                             // @P4A
+                    for ( int i = 0; i < 100; i++ )                                           // @P4A
+                    {                                                                         // @P4A
+                        if ( (LastUsbDeviceDataEvent != null)|                                // @P4A
+                             (LastUsbDeviceErrorEvent != null) )                              // @P4A
+                        {                                                                     // @P4A
+                            break;                                                            // @P4A
+                        }                                                                     // @P4A
+                        Thread.sleep( 20 ); //wait 20 ms before checking for event            // @P4A
+                    }                                                                         // @P4A
+                }                                                                             // @P4A
+                catch ( InterruptedException e )                                              // @P4A
+                {                                                                             // @P4A
+                    fail("Sleep was interrupted");                                            // @P4A
+                }                                                                             // @P4A
+                assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
+                             statusExpected, status);
+                                                                                              // @P4D
+            } catch (UsbException uE)                                                         // @P2A
+	    {                                                                                 // @P2A
+	        fail("Got exception getting status. Exception message: "+ uE.getMessage() );  // @P2A
+	    }                                                                                 // @P2A
 
-            status = StandardRequest.getStatus(usbDevice, recipientType, target);   
-            assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);
-            verifySetFeatureIrp(recipientType, featureSelection, wIndex);
-
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
+                                                                                              // @P2D5
         /**************************************************************
-         * Now, do a clearFeature for the same device 
+         * Now, do a clearFeature for the same device
          **************************************************************/
 
         statusExpected = 0;
@@ -162,7 +180,7 @@ public class RequestTestSetClearFeature extends TestCase
             LastUsbDeviceDataEvent = null;
             LastUsbDeviceErrorEvent = null;
 
-            StandardRequest.clearFeature(usbDevice, recipientType, featureSelection, target);               
+            StandardRequest.clearFeature(usbDevice, recipientType, featureSelection, target);
 
             try
             {
@@ -183,16 +201,35 @@ public class RequestTestSetClearFeature extends TestCase
             {
                 fail("Sleep was interrupted");
             }
+            verifyClearFeatureIrp(recipientType, featureSelection, wIndex);                   // @P4A
 
             /* Verify proper listener event received */
             assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);    
+            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
 
-            status = StandardRequest.getStatus(usbDevice, recipientType, target);   
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            status = StandardRequest.getStatus(usbDevice, recipientType, target);
+            try                                                                               // @P4A
+            {                                                                                 // @P4A
+                for ( int i = 0; i < 100; i++ )                                               // @P4A
+                {                                                                             // @P4A
+                    if ( (LastUsbDeviceDataEvent != null)|                                    // @P4A
+                         (LastUsbDeviceErrorEvent != null) )                                  // @P4A
+                    {                                                                         // @P4A
+                        break;                                                                // @P4A
+                    }                                                                         // @P4A
+                    Thread.sleep( 20 ); //wait 20 ms before checking for event                // @P4A
+                }                                                                             // @P4A
+            }                                                                                 // @P4A
+            catch ( InterruptedException e )                                                  // @P4A
+            {                                                                                 // @P4A
+                fail("Sleep was interrupted");                                                // @P4A
+            }                                                                                 // @P4A
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);            
+                         statusExpected, status);
 
-            verifyClearFeatureIrp(recipientType, featureSelection, wIndex);
+                                                                                              // @P4D
 
         }
         catch ( UsbException uE )
@@ -211,32 +248,15 @@ public class RequestTestSetClearFeature extends TestCase
 
         configurationNumber = 2;
         //set recipientType to Device
-        recipientType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;      
+        recipientType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
         //set featureSelection to an invalid value
         featureSelection = 3;
         target = 0;
         statusExpected = 0;
         LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;             
-
-
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-
-            LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null;     
-
+        LastUsbDeviceErrorEvent = null;
+            
+                                                                                              // @P2D16
             try
             {
 
@@ -273,8 +293,8 @@ public class RequestTestSetClearFeature extends TestCase
             }
             finally
             {
-                assertTrue("UsbException should have been thrown for setting feature to bad value of  " 
-                           + UsbUtil.toHexString(featureSelection), usbExceptionThrown);                   
+                assertTrue("UsbException should have been thrown for setting feature to bad value of  "
+                           + UsbUtil.toHexString(featureSelection), usbExceptionThrown);
             }
             try
             {
@@ -285,18 +305,37 @@ public class RequestTestSetClearFeature extends TestCase
             }
             /* Verify proper listener event received */
             assertNull("DeviceDataEvent should be null.", LastUsbDeviceDataEvent);
-            assertNotNull("DeviceErrorEvent should not be null.", LastUsbDeviceErrorEvent);     
+            assertNotNull("DeviceErrorEvent should not be null.", LastUsbDeviceErrorEvent);
 
-            status = StandardRequest.getStatus(usbDevice, recipientType, target);   
-            assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            try                                                                               // @P2A
+	    {                                                                                 // @P2A
+	        status = StandardRequest.getStatus(usbDevice, recipientType, target);
+                try                                                                           // @P4A
+                {                                                                             // @P4A
+                    for ( int i = 0; i < 100; i++ )                                           // @P4A
+                    {                                                                         // @P4A
+                        if ( (LastUsbDeviceDataEvent != null)|                                // @P4A
+                             (LastUsbDeviceErrorEvent != null) )                              // @P4A
+                        {                                                                     // @P4A
+                            break;                                                            // @P4A
+                        }                                                                     // @P4A
+                        Thread.sleep( 20 ); //wait 20 ms before checking for event            // @P4A
+                    }                                                                         // @P4A
+                }                                                                             // @P4A
+                catch ( InterruptedException e )                                              // @P4A 
+                {                                                                             // @P4A
+                    fail("Sleep was interrupted");                                            // @P4A
+                }                                                                             // @P4A
+                assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
+                             statusExpected, status);
+            } catch (UsbException uE)                                                          // @P2A
+	    {                                                                                  // @P2A
+	        fail("Got exception getting status. Exception message: "+ uE.getMessage() );   // @P2A
+	    }                                                                                  // @P2A
 
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
+                                                                                              // @P2D5
 
         /*****************************************************************
          *	Now attempt to setFeature for an Interface 
@@ -311,28 +350,25 @@ public class RequestTestSetClearFeature extends TestCase
         statusExpected = 0;
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;     
-        wIndex = 0;     
+        wIndex = 0;
 
 
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
+                                                                                              // @P2D16
             try
             {
-                // Wait for setConfiguration Data event before continuing 
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
 
-            LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null; 
-
-            try
-            {
+                try {
+                    usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) target).claim();
+                } catch ( UsbClaimException uCE ) {
+                    fail("Config " + configurationNumber + " Interface " + target + " is already claimed!");
+                } catch ( UsbNotActiveException uNAE ) {
+                    fail("Config " + configurationNumber + " is not active!");
+                } catch ( UsbException uE ) {
+                    fail("Config " + configurationNumber + " could not be claimed!");
+                } catch ( UsbDisconnectedException uDE )                                      // @P1C
+                {                                                                             // @P1A
+                    fail ("A connected device should't throw the UsbDisconnectedException!"); // @P1A
+                }                                                                             // @P1A
 
                 StandardRequest.setFeature(usbDevice, recipientType, featureSelection, target);
 
@@ -373,18 +409,36 @@ public class RequestTestSetClearFeature extends TestCase
             verifySetFeatureIrp(recipientType, featureSelection, wIndex);
 
             LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null; 
+            LastUsbDeviceErrorEvent = null;
 
-            status = StandardRequest.getStatus(usbDevice, recipientType, target);   
-            assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);            
+            try                                                                               // @P2A
+	    {                                                                                 // @P2A
+	        status = StandardRequest.getStatus(usbDevice, recipientType, target);
 
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
+                try                                                                           // @P4A
+                {                                                                             // @P4A
+                    for ( int i = 0; i < 100; i++ )                                           // @P4A
+                    {                                                                         // @P4A
+                        if ( (LastUsbDeviceDataEvent != null)|                                // @P4A
+                             (LastUsbDeviceErrorEvent != null) )                              // @P4A
+                        {                                                                     // @P4A
+                            break;                                                            // @P4A
+                        }                                                                     // @P4A
+                        Thread.sleep( 20 ); //wait 20 ms before checking for event            // @P4A
+                    }                                                                         // @P4A
+                }                                                                             // @P4A
+                catch ( InterruptedException e )                                              // @P4A 
+                {                                                                             // @P4A
+                    fail("Sleep was interrupted");                                            // @P4A
+                }                                                                             // @P4A
+                assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
+                             statusExpected, status);
+            } catch (UsbException uE)                                                         // @P2A
+	    {                                                                                 // @P2A
+	        fail("Got exception getting status. Exception message: "+ uE.getMessage() );  // @P2A
+	    }                                                                                 // @P2A
 
+                                                                                              // @P2D5
         /**************************************************************
          * Now, do a clearFeature for the same interface 
          **************************************************************/
@@ -417,18 +471,35 @@ public class RequestTestSetClearFeature extends TestCase
                 fail("Sleep was interrupted");
             }
 
-            // Verify proper listener event received 
+            // Verify proper listener event received
             assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);    
+            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
+            verifyClearFeatureIrp(recipientType, featureSelection, wIndex);                   // @P4A
 
             LastUsbDeviceDataEvent = null;
             LastUsbDeviceErrorEvent = null;
 
-            status = StandardRequest.getStatus(usbDevice, recipientType, target);   
+            status = StandardRequest.getStatus(usbDevice, recipientType, target);
+            try                                                                               // @P4A
+            {                                                                                 // @P4A
+                for ( int i = 0; i < 100; i++ )                                               // @P4A
+                {                                                                             // @P4A
+                    if ( (LastUsbDeviceDataEvent != null)|                                    // @P4A
+                         (LastUsbDeviceErrorEvent != null) )                                  // @P4A
+                    {                                                                         // @P4A
+                        break;                                                                // @P4A
+                    }                                                                         // @P4A
+                    Thread.sleep( 20 ); //wait 20 ms before checking for event                // @P4A
+                }                                                                             // @P4A
+            }                                                                                 // @P4A
+            catch ( InterruptedException e )                                                  // @P4A
+            {                                                                                 // @P4A
+                fail("Sleep was interrupted");                                                // @P4A
+            }                                                                                 // @P4A
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);            
+                         statusExpected, status);
 
-            verifyClearFeatureIrp(recipientType, featureSelection, wIndex);
+                                                                                              // @P4D
 
         }
         catch ( UsbException uE )
@@ -464,27 +535,7 @@ public class RequestTestSetClearFeature extends TestCase
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;     
 
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
-        LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;
+                                                                                              // @P2D21        
         /* Set target to a known endpoint on this configuration. */
         endpoint = 0x82;
 
@@ -536,6 +587,22 @@ public class RequestTestSetClearFeature extends TestCase
         {
 
             status = StandardRequest.getStatus(usbDevice, recipientType, endpoint);
+            try                                                                               // @P4A
+            {                                                                                 // @P4A
+                for ( int i = 0; i < 100; i++ )                                               // @P4A
+                {                                                                             // @P4A
+                    if ( (LastUsbDeviceDataEvent != null)|                                    // @P4A
+                         (LastUsbDeviceErrorEvent != null) )                                  // @P4A
+                    {                                                                         // @P4A
+                        break;                                                                // @P4A
+                    }                                                                         // @P4A
+                    Thread.sleep( 20 ); //wait 20 ms before checking for event                // @P4A
+                }                                                                             // @P4A
+            }                                                                                 // @P4A
+            catch ( InterruptedException e )                                                  // @P4A 
+            {                                                                                 // @P4A
+                fail("Sleep was interrupted");                                                // @P4A
+            }                                                                                 // @P4A
 
             Thread.sleep(250);  
         }
@@ -587,13 +654,32 @@ public class RequestTestSetClearFeature extends TestCase
 
             /* Verify proper listener event received */
             assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);    
+            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
+            verifyClearFeatureIrp(recipientType, featureSelection, endpoint);                 // @P4A
 
-            status = StandardRequest.getStatus(usbDevice, recipientType, endpoint); 
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            status = StandardRequest.getStatus(usbDevice, recipientType, endpoint);
+            try                                                                               // @P4A
+            {                                                                                 // @P4A
+                for ( int i = 0; i < 100; i++ )                                               // @P4A
+                {                                                                             // @P4A
+                    if ( (LastUsbDeviceDataEvent != null)|                                    // @P4A
+                         (LastUsbDeviceErrorEvent != null) )                                  // @P4A
+                    {                                                                         // @P4A
+                        break;                                                                // @P4A
+                    }                                                                         // @P4A
+                    Thread.sleep( 20 ); //wait 20 ms before checking for event                // @P4A
+                }                                                                             // @P4A
+            }                                                                                 // @P4A
+            catch ( InterruptedException e )                                                  // @P4A
+            {                                                                                 // @P4A
+                fail("Sleep was interrupted");                                                // @P4A
+            }                                                                                 // @P4A
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);            
+                         statusExpected, status);
 
-            verifyClearFeatureIrp(recipientType, featureSelection, endpoint);
+                                                                                              // @P4D
 
         }
         catch ( UsbException uE )
@@ -622,27 +708,7 @@ public class RequestTestSetClearFeature extends TestCase
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;     
 
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
-        LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;
+                                                                                              // @P2D21        
         /* Set target to a known endpoint on this configuration. */
         endpoint = 0x82;
 
@@ -698,7 +764,7 @@ public class RequestTestSetClearFeature extends TestCase
         assertNotNull("DeviceErrorEvent should not be null.", LastUsbDeviceErrorEvent); 
 
         LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null; 
+        LastUsbDeviceErrorEvent = null;
         try
         {
 
@@ -734,27 +800,7 @@ public class RequestTestSetClearFeature extends TestCase
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;     
 
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
-        LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;
+                                                                                              // @P2D21        
         /* Set target to an endpoint that is not on this configuration. */
         endpoint = 0x82;
 
@@ -839,16 +885,27 @@ public class RequestTestSetClearFeature extends TestCase
         assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                      statusExpected, status);
 
+        try {
+            usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) target).release();
+        } catch ( UsbClaimException uCE ) {
+            fail("Config " + configurationNumber + " Interface " + target + " is not claimed!");
+        } catch ( UsbException uE ) {
+            fail("Config " + configurationNumber + " could not be released!");
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
+
     }
 
 
     public void testSetAndClearFeatureNonStatic()
     {
         /* The methods being tested are:
-         * public static void setFeature(byte recipient, 
+         * public static void setFeature(byte recipient,
          *                                                short featureSelector, short target)
          *                             throws usbException, IllegalArgumentException
-         * 
+         *
          * public static void clearFeature(byte recipient,
          * 												 short featureSelector, short target)
          * 							throws usbException, IllegalArgumentException
@@ -873,33 +930,17 @@ public class RequestTestSetClearFeature extends TestCase
 
         configurationNumber = 1;
         //set recipientType to Device
-        recipientType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;      
+        recipientType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
         //set featureSelection to Device Remote Wakeup
         featureSelection = UsbConst.FEATURE_SELECTOR_DEVICE_REMOTE_WAKEUP;
         target = 0;
         wIndex = 0;
         statusExpected = 2;
         LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;             
+        LastUsbDeviceErrorEvent = null;
 
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-
-            LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null; 
-
+                                                                                              // @P2D16
             try
             {
 
@@ -934,22 +975,42 @@ public class RequestTestSetClearFeature extends TestCase
             {
                 fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
             }
+            verifySetFeatureIrp(recipientType, featureSelection, wIndex);                     // @P4A
 
             /* Verify proper listener event received */
             assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);        
+            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
 
-            status = standardRequest.getStatus(recipientType, target);  
-            assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);
-            verifySetFeatureIrp(recipientType, featureSelection, wIndex);
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            try                                                                               // @P2A
+	    {                                                                                 // @P2A
+	        status = standardRequest.getStatus(recipientType, target);
+                try                                                                           // @P4A
+                {                                                                             // @P4A
+                    for ( int i = 0; i < 100; i++ )                                           // @P4A
+                    {                                                                         // @P4A
+                        if ( (LastUsbDeviceDataEvent != null)|                                // @P4A
+                             (LastUsbDeviceErrorEvent != null) )                              // @P4A
+                        {                                                                     // @P4A
+                            break;                                                            // @P4A
+                        }                                                                     // @P4A
+                        Thread.sleep( 20 ); //wait 20 ms before checking for event            // @P4A
+                    }                                                                         // @P4A
+                }                                                                             // @P4A
+                catch ( InterruptedException e )                                              // @P4A
+                {                                                                             // @P4A
+                    fail("Sleep was interrupted");                                            // @P4A
+                }                                                                             // @P4A
+                assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
+                             statusExpected, status);
+                                                                                              // @P4D
+            } catch (UsbException uE)                                                         // @P2A
+	    {                                                                                 // @P2A
+	        fail("Got exception getting status. Exception message: "+ uE.getMessage() );  // @P2A
+	    }                                                                                 // @P2A
 
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
+                                                                                              // @P2D5
         /**************************************************************
          * Now, do a clearFeature for the same device 
          **************************************************************/
@@ -983,16 +1044,35 @@ public class RequestTestSetClearFeature extends TestCase
             {
                 fail("Sleep was interrupted");
             }
+            verifyClearFeatureIrp(recipientType, featureSelection, wIndex);                   // @P4A
 
             /* Verify proper listener event received */
             assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);    
+            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
 
-            status = standardRequest.getStatus(recipientType, target);  
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            status = standardRequest.getStatus(recipientType, target);
+            try                                                                               // @P4A
+            {                                                                                 // @P4A
+                for ( int i = 0; i < 100; i++ )                                               // @P4A
+                {                                                                             // @P4A
+                    if ( (LastUsbDeviceDataEvent != null)|                                    // @P4A
+                         (LastUsbDeviceErrorEvent != null) )                                  // @P4A
+                    {                                                                         // @P4A
+                        break;                                                                // @P4A
+                    }                                                                         // @P4A
+                    Thread.sleep( 20 ); //wait 20 ms before checking for event                // @P4A
+                }                                                                             // @P4A
+            }                                                                                 // @P4A
+            catch ( InterruptedException e )                                                  // @P4A
+            {                                                                                 // @P4A
+                fail("Sleep was interrupted");                                                // @P4A
+            }                                                                                 // @P4A
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);            
+                         statusExpected, status);
 
-            verifyClearFeatureIrp(recipientType, featureSelection, wIndex);
+                                                                                              // @P4D
 
         }
         catch ( UsbException uE )
@@ -1019,23 +1099,7 @@ public class RequestTestSetClearFeature extends TestCase
         LastUsbDeviceErrorEvent = null;             
 
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-
-            LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null;     
-
+                                                                                              // @P2D16
             try
             {
 
@@ -1084,18 +1148,38 @@ public class RequestTestSetClearFeature extends TestCase
             }
             /* Verify proper listener event received */
             assertNull("DeviceDataEvent should be null.", LastUsbDeviceDataEvent);
-            assertNotNull("DeviceErrorEvent should not be null.", LastUsbDeviceErrorEvent);     
+            assertNotNull("DeviceErrorEvent should not be null.", LastUsbDeviceErrorEvent);
 
-            status = standardRequest.getStatus(recipientType, target);  
-            assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            try                                                                               // @P2A
+	    {                                                                                 // @P2A
+	        status = standardRequest.getStatus(recipientType, target);
 
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
+                try                                                                           // @P4A
+                {                                                                             // @P4A
+                    for ( int i = 0; i < 100; i++ )                                           // @P4A
+                    {                                                                         // @P4A
+                        if ( (LastUsbDeviceDataEvent != null)|                                // @P4A
+                             (LastUsbDeviceErrorEvent != null) )                              // @P4A
+                        {                                                                     // @P4A
+                            break;                                                            // @P4A
+                        }                                                                     // @P4A
+                        Thread.sleep( 20 ); //wait 20 ms before checking for event            // @P4A
+                    }                                                                         // @P4A
+                }                                                                             // @P4A
+                catch ( InterruptedException e )                                              // @P4A 
+                {                                                                             // @P4A
+                    fail("Sleep was interrupted");                                            // @P4A
+                }                                                                             // @P4A
+                assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
+                             statusExpected, status);
+            } catch (UsbException uE)                                                         // @P2A
+	    {                                                                                 // @P2A
+	        fail("Got exception getting status. Exception message: "+ uE.getMessage() );  // @P2A
+	    }                                                                                 // @P2A
 
+                                                                                              // @P2D5
 
         /*****************************************************************
          *	Now attempt to setFeature for an Interface 
@@ -1113,26 +1197,22 @@ public class RequestTestSetClearFeature extends TestCase
         wIndex = 0;     
 
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                // Wait for setConfiguration Data event before continuing 
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-
-            LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null; 
-
+                                                                                              // @P2D16
             try
             {
 
+                try {
+                    usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) target).claim();
+                } catch ( UsbClaimException uCE ) {
+                    fail("Config " + configurationNumber + " Interface " + target + " is already claimed!");
+                } catch ( UsbNotActiveException uNAE ) {
+                    fail("Config " + configurationNumber + " is not active!");
+                } catch ( UsbException uE ) {
+                    fail("Config " + configurationNumber + " could not be claimed!");
+                } catch ( UsbDisconnectedException uDE )                                      // @P1C
+                {                                                                             // @P1A
+                    fail ("A connected device should't throw the UsbDisconnectedException!"); // @P1A
+                }                                                                             // @P1A
                 standardRequest.setFeature(recipientType, featureSelection, target);
 
                 try
@@ -1174,16 +1254,33 @@ public class RequestTestSetClearFeature extends TestCase
             LastUsbDeviceDataEvent = null;
             LastUsbDeviceErrorEvent = null; 
 
-            status = standardRequest.getStatus(recipientType, target);  
-            assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);            
+	    try                                                                               // @P2A
+	    {                                                                                 // @P2A
+                status = standardRequest.getStatus(recipientType, target);
+                try                                                                           // @P4A
+                {                                                                             // @P4A
+                    for ( int i = 0; i < 100; i++ )                                           // @P4A
+                    {                                                                         // @P4A
+                        if ( (LastUsbDeviceDataEvent != null)|                                // @P4A
+                             (LastUsbDeviceErrorEvent != null) )                              // @P4A
+                        {                                                                     // @P4A
+                            break;                                                            // @P4A
+                        }                                                                     // @P4A
+                        Thread.sleep( 20 ); //wait 20 ms before checking for event            // @P4A
+                    }                                                                         // @P4A
+                }                                                                             // @P4A
+                catch ( InterruptedException e )                                              // @P4A 
+                {                                                                             // @P4A
+                    fail("Sleep was interrupted");                                            // @P4A
+                }                                                                             // @P4A
+                assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
+                             statusExpected, status);
+            } catch (UsbException uE)                                                         // @P2A
+	    {                                                                                 // @P2A
+	        fail("Got exception getting status. Exception message: "+ uE.getMessage() );  // @P2A
+	    }                                                                                 // @P2A
 
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
+                                                                                              // @P2D5
         /**************************************************************
          * Now, do a clearFeature for the same interface 
          **************************************************************/
@@ -1218,13 +1315,32 @@ public class RequestTestSetClearFeature extends TestCase
 
             /* Verify proper listener event received */
             assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);    
+            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
+            verifyClearFeatureIrp(recipientType, featureSelection, wIndex);                   // @P4A
 
-            status = standardRequest.getStatus(recipientType, target);  
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            status = standardRequest.getStatus(recipientType, target);
+            try                                                                               // @P4A
+            {                                                                                 // @P4A
+                for ( int i = 0; i < 100; i++ )                                               // @P4A
+                {                                                                             // @P4A
+                    if ( (LastUsbDeviceDataEvent != null)|                                    // @P4A
+                         (LastUsbDeviceErrorEvent != null) )                                  // @P4A
+                    {                                                                         // @P4A
+                        break;                                                                // @P4A
+                    }                                                                         // @P4A
+                    Thread.sleep( 20 ); //wait 20 ms before checking for event                // @P4A
+                }                                                                             // @P4A
+            }                                                                                 // @P4A
+            catch ( InterruptedException e )                                                  // @P4A
+            {                                                                                 // @P4A
+                fail("Sleep was interrupted");                                                // @P4A
+            }                                                                                 // @P4A
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);            
+                         statusExpected, status);
 
-            verifyClearFeatureIrp(recipientType, featureSelection, wIndex);
+                                                                                              // @P4D
 
         }
         catch ( UsbException uE )
@@ -1261,27 +1377,7 @@ public class RequestTestSetClearFeature extends TestCase
         LastUsbDeviceErrorEvent = null;     
 
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
-        LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;
+                                                                                              // @P2D21
         /* Set target to a known endpoint on this configuration. */
         endpoint = 0x82;
 
@@ -1382,13 +1478,32 @@ public class RequestTestSetClearFeature extends TestCase
 
             /* Verify proper listener event received */
             assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);    
+            assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
+            verifyClearFeatureIrp(recipientType, featureSelection, endpoint);                 // @P4A
 
-            status = standardRequest.getStatus(recipientType, endpoint);    
+            LastUsbDeviceDataEvent = null;                                                    // @P4A
+            LastUsbDeviceErrorEvent = null;                                                   // @P4A
+            status = standardRequest.getStatus(recipientType, endpoint);
+            try                                                                               // @P4A
+            {                                                                                 // @P4A
+                for ( int i = 0; i < 100; i++ )                                               // @P4A
+                {                                                                             // @P4A
+                    if ( (LastUsbDeviceDataEvent != null)|                                    // @P4A
+                         (LastUsbDeviceErrorEvent != null) )                                  // @P4A
+                    {                                                                         // @P4A
+                        break;                                                                // @P4A
+                    }                                                                         // @P4A
+                    Thread.sleep( 20 ); //wait 20 ms before checking for event                // @P4A
+                }                                                                             // @P4A
+            }                                                                                 // @P4A
+            catch ( InterruptedException e )                                                  // @P4A
+            {                                                                                 // @P4A
+                fail("Sleep was interrupted");                                                // @P4A
+            }                                                                                 // @P4A
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
-                         statusExpected, status);            
+                         statusExpected, status);
 
-            verifyClearFeatureIrp(recipientType, featureSelection, endpoint);
+                                                                                              // @P4D
 
         }
         catch ( UsbException uE )
@@ -1417,27 +1532,7 @@ public class RequestTestSetClearFeature extends TestCase
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;     
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
-        LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;
+                                                                                              // @P2D21
         /* Set target to a known endpoint on this configuration. */
         endpoint = 0x82;
 
@@ -1527,27 +1622,7 @@ public class RequestTestSetClearFeature extends TestCase
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;     
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage() );
-        }
-
-        LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;
+                                                                                              // @P2D21
         /* Set target to a valid endpoint for this configuration */
         endpoint = 0x82;
 
@@ -1632,7 +1707,18 @@ public class RequestTestSetClearFeature extends TestCase
         assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                      statusExpected, status);
 
-    }
+        try {
+            usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) target).release();
+        } catch ( UsbClaimException uCE ) {
+            fail("Config " + configurationNumber + " Interface " + target + " is not claimed!");
+        } catch ( UsbException uE ) {
+            fail("Config " + configurationNumber + " could not be released!");
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
+
+}
 
 
 
@@ -1641,15 +1727,20 @@ public class RequestTestSetClearFeature extends TestCase
     {
         //IRP values expected in set feature Irp
 
+
         byte expectedbRequest = UsbConst.REQUEST_SET_FEATURE;
         short expectedwLength = 0;
+
+        expectedbmRequestType = (byte) ( expectedbmRequestType |                              // @P3A
+                                         UsbConst.REQUESTTYPE_TYPE_STANDARD |                 // @P3A
+                                         UsbConst.REQUESTTYPE_DIRECTION_OUT );                // @P3A
 
         VerifyIrpMethods.verifyRequestTest(LastUsbDeviceDataEvent.getUsbControlIrp(),
                                            expectedbmRequestType,
                                            expectedbRequest,
                                            expectedwValue,
                                            expectedwIndex);
-    }       
+    }
 
 
     private void verifyClearFeatureIrp (byte expectedbmRequestType, short expectedwValue, short expectedwIndex)
@@ -1657,6 +1748,11 @@ public class RequestTestSetClearFeature extends TestCase
         //IRP values expected in get feature Irp
 
         byte expectedbRequest = UsbConst.REQUEST_CLEAR_FEATURE;
+
+
+        expectedbmRequestType = (byte) ( expectedbmRequestType |                              // @P3A
+                                         UsbConst.REQUESTTYPE_TYPE_STANDARD |                 // @P3A
+                                         UsbConst.REQUESTTYPE_DIRECTION_OUT );                // @P3A
 
         VerifyIrpMethods.verifyRequestTest(LastUsbDeviceDataEvent.getUsbControlIrp(),
                                            expectedbmRequestType,

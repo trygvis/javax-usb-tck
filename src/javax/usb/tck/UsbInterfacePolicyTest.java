@@ -9,6 +9,15 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ */
+
 import junit.framework.TestCase;
 import java.util.*;
 
@@ -116,231 +125,6 @@ public class UsbInterfacePolicyTest extends TestCase
     }
 
 
-    /* Open pipe using interface policy test cases */
-
-    /**
-     * Test Open policy with a true return and a null key
-     * <p>
-     * This test case will set the open policy to true and
-     * then will claim an interface with that policy and try
-     * to open the first pipe it can find.
-     * <p>
-     * This test case will succeed if the open returns successfully
-     */
-
-    public void testIfaceOpenPolicyTrueNoKey()
-    {
-
-
-        policy1.setOpenPolicy(true);
-
-
-        assertTrue("Couldn't claim interface",
-                   claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-        UsbPipe e1 = getUsbPipe(usbConfiguration.getUsbInterface((byte)0));
-        assertEquals("Couldn't open pipe", opened, openPipe(e1, null));
-
-        //clean up
-        closePipe(e1);
-        releaseIface(usbConfiguration.getUsbInterface((byte)0), null);
-    }
-
-    /**
-     * Test Open policy with a false return and a null key
-     * <p>
-     * This test case will set the open policy to false and
-     * then will claim an interface with that policy and try
-     * to open the first pipe it can find.
-     * <p>
-     * This test case will succeed if the open returns a policyDenied exception
-     */
-    public void testIfaceOpenPolicyFalseNoKey()
-    {
-
-        policy1.setOpenPolicy(false);
-
-        assertTrue("Couldn't claim interface",
-                   claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-        UsbPipe e1 = getUsbPipe(usbConfiguration.getUsbInterface((byte)0));
-        assertEquals("Could open pipe, but policy shouldn't have allowed it",
-                     policyDenied, openPipe(e1, null));
-
-        //clean up
-        closePipe(e1);
-        releaseIface(usbConfiguration.getUsbInterface((byte)0), null);
-
-    }
-
-    /**
-     * Test Open policy with key1, a true open policy
-     * <p>
-     * This test case will claim an interface and try
-     * to open the first pipe it can find with key1.
-     * <p>
-     * key1 will set the open policy to true
-     * key2 will set the open policy to false
-     * <p>
-     * This test case will succeed if the open returns successfully
-     */
-    public void testIfaceOpenPolicyKey1()
-    {
-
-        assertTrue("Couldn't claim interface",
-                   claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-        UsbPipe e1 = getUsbPipe(usbConfiguration.getUsbInterface((byte)0));
-        assertEquals("Couldn't open pipe with key1, should of been able to",
-                     opened, openPipe(e1, key1));
-
-        //clean up
-        closePipe(e1);
-        releaseIface(usbConfiguration.getUsbInterface((byte)0), null);
-
-    }
-
-    /**
-     * Test Open policy with key2, a false open policy
-     * <p>
-     * This test case will claim an interface and try
-     * to open the first pipe it can find with key2.
-     * <p>
-     * key1 will set the open policy to true
-     * key2 will set the open policy to false
-     * <p>
-     * This test case will succeed if the open returns a policyDenied exception
-     */
-    public void testIfaceOpenPolicyFalseKey()
-    {
-
-        assertTrue("Couldn't claim interface",
-                   claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-        UsbPipe e1 = getUsbPipe(usbConfiguration.getUsbInterface((byte)0));
-        assertEquals("Could open pipe with key2 but policy should not allow this",
-                     policyDenied, openPipe(e1, key2));
-
-        //clean up
-        closePipe(e1);
-        releaseIface(usbConfiguration.getUsbInterface((byte)0), null);
-
-    }
-
-
-    /*Release policy test cases*/
-
-    /**
-     * Test release policy with a true return and a null key
-     * <p>
-     * This test case will attempt to release an interface that has an open
-     * policy of true.
-     * <p>
-     * This test case will succeed if the release returns successfully
-     */
-    public void testIfaceReleaseTrueNoKeyClaimed()
-    {
-
-        policy1.setReleasePolicy(true);
-
-        assertTrue("Couldn't claim interface",
-                   claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-        assertEquals("Can't release device, policy should allow this", released,
-                     releaseIface(usbConfiguration.getUsbInterface((byte)0), null));
-
-    }
-
-    /**
-     * Test release policy with a false return and a null key
-     * <p>
-     * This test case will attempt to release an interface that has an open
-     * policy of false.
-     * <p>
-     * This test case will succeed if the release returns a policyDenied exception
-     */
-    public void testIfaceReleaseFalseNoKeyClaimed()
-    {
-
-        policy1.setReleasePolicy(false);
-
-        assertTrue("Couldn't claim interface",
-                   claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-        assertEquals("Interface shouldn't release per the policy, but it did", policyDenied,
-                     releaseIface(usbConfiguration.getUsbInterface((byte)0), null));
-
-        policy1.setReleasePolicy(true);
-        releaseIface(usbConfiguration.getUsbInterface((byte)0), null);
-
-    }
-
-    /**
-     * Test release policy with key1, a true release policy
-     * <p>
-     * This test case will attempt to release an interface
-     * with key1
-     * <p>
-     * key1 will set the release policy to true
-     * key2 will set the release policy to false
-     * <p>
-     * This test case will succeed if the release returns successfully
-     */
-    public void testIfaceReleaseKey1Claimed()
-    {
-
-        assertTrue("Couldn't claim interface",
-                   claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-        assertEquals("Can't release device with key1 but should be able to", released,
-                     releaseIface(usbConfiguration.getUsbInterface((byte)0), key1));
-    }
-
-    /**
-     * Test release policy with key2, a false release policy
-     * <p>
-     * This test case will attempt to release an interface
-     * with key2
-     * <p>
-     * key1 will set the release policy to true
-     * key2 will set the release policy to false
-     * <p>
-     * This test case will succeed if the release returns a policyDenied exception
-     */
-    public void testIfaceReleaseKey2Claimed()
-    {
-
-        assertTrue("Couldn't claim interface",
-                   claimIface(usbConfiguration.getUsbInterface((byte)0), policy1));
-        assertEquals("Able to release device with key2, this shouldn't be allowed", policyDenied,
-                     releaseIface(usbConfiguration.getUsbInterface((byte)0), key2));
-
-        policy1.setReleasePolicy(true);
-        releaseIface(usbConfiguration.getUsbInterface((byte)0), null);
-
-    }
-
-    /**
-     * Test a release of an interface that isn't claimed
-     * <p>
-     * The releasePolicy is set to true
-     */
-    public void testIfaceReleaseFalseNoKeyNotClaimed()
-    {
-
-        policy1.setReleasePolicy(true);
-        assertEquals("Never claimed, shouldn't release", notClaimed,
-                     releaseIface(usbConfiguration.getUsbInterface((byte)0), null));
-
-    }
-
-    /**
-     * Test a release of an interface that isn't claimed
-     * <p>
-     * The releasePolicy is set to false
-     */
-    public void testIfaceReleaseKey1NotClaimed()
-    {
-
-        assertEquals("Never claimed, shouldn't release", notClaimed,
-                     releaseIface(usbConfiguration.getUsbInterface((byte)0), key1));
-
-    }
-
-
     //This method will take an interface and policy and call the appropriate
     //claim method, this method should only be used within this test
     private boolean claimIface(UsbInterface iface,
@@ -352,19 +136,19 @@ public class UsbInterfacePolicyTest extends TestCase
                 iface.claim();
             else
                 iface.claim(ifacePolicy);
-        }
-        catch ( UsbClaimException uce )
+        } catch ( UsbClaimException uce )
         {
             return false;
-        }
-        catch ( UsbNotActiveException unae )
+        } catch ( UsbNotActiveException unae )
         {
             fail("UsbNotActiveException: " + unae);
-        }
-        catch ( UsbException ue )
+        } catch ( UsbException ue )
         {
             fail("UsbException: " + ue);
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
         return true;
     }
 
@@ -376,27 +160,20 @@ public class UsbInterfacePolicyTest extends TestCase
     {
         try
         {
-            if ( key == null )
-                iface.release();
-            else
-                iface.release(key);
-        }
-        catch ( UsbClaimException uce )
+            iface.release();
+        } catch ( UsbClaimException uce )
         {
             return notClaimed;
-        }
-        catch ( UsbPolicyDenied uce )
-        {
-            return policyDenied;
-        }
-        catch ( UsbNotActiveException unae )
+        } catch ( UsbNotActiveException unae )
         {
             fail("UsbNotActiveException: " + unae);
-        }
-        catch ( UsbException ue )
+        } catch ( UsbException ue )
         {
             fail("UsbException: " + ue);
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
         return released;
     }
 
@@ -414,27 +191,20 @@ public class UsbInterfacePolicyTest extends TestCase
     {
         try
         {
-            if ( key == null )
-                pipe.open();
-            else
-                pipe.open(key);
-        }
-        catch ( UsbPolicyDenied uce )
-        {
-            return policyDenied;
-        }
-        catch ( UsbNotActiveException unae )
+            pipe.open();
+        } catch ( UsbNotActiveException unae )
         {
             fail("UsbNotActiveException: " + unae);
-        }
-        catch ( UsbNotClaimedException unae )
+        } catch ( UsbNotClaimedException unae )
         {
             fail("UsbNotActiveException: " + unae);
-        }
-        catch ( UsbException ue )
+        } catch ( UsbException ue )
         {
             fail("UsbException: " + ue);
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         return opened;
     }
@@ -445,15 +215,16 @@ public class UsbInterfacePolicyTest extends TestCase
         try
         {
             pipe.close();
-        }
-        catch ( UsbException ue )
+        } catch ( UsbException ue )
         {
             fail("UsbException: " + ue);
-        }
-        catch ( UsbNotActiveException unae )
+        } catch ( UsbNotActiveException unae )
         {
             fail("UsbNotOpenedException: " + unae);
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
         return true;
     }
 
@@ -467,11 +238,7 @@ public class UsbInterfacePolicyTest extends TestCase
     private static final boolean debug = true;
     private static final int released = 1111;
     private static final int opened = 2222;
-    private static final int policyDenied = 3333;
     private static final int notClaimed = 4444;
-    private static final String key1 = "key1";
-    private static final String key2 = "key2";
-
 
 
     /*
@@ -499,7 +266,6 @@ public class UsbInterfacePolicyTest extends TestCase
     private class InterfacePolicyImp implements UsbInterfacePolicy
     {
 
-
         /**Constuctor
          *
          * <p>
@@ -510,83 +276,14 @@ public class UsbInterfacePolicyTest extends TestCase
          */
         public InterfacePolicyImp ()
         {
-            releasePolicy = true;
-            openPolicy = true;
             forceClaimPolicy = true;
             forceClaimTag = false;
-        }
-
-
-        /**Constuctor that will set the policy dynamically.
-         *
-         * @param releaseIn The release policy
-         * @param openIn The open policy
-         * @param forceClaimIn The force claim policy
-         *
-         */
-        public InterfacePolicyImp (boolean releaseIn, boolean openIn, boolean forceClaimIn)
-        {
-            releasePolicy = releaseIn;
-            openPolicy = openIn;
-            forceClaimPolicy = forceClaimIn;
-            forceClaimTag = false;
-        }
-
-        /**Method that should be called from a release using
-         * the non default interface policy
-         *
-         *@param arg0 The current UsbInterface that is being released
-         *@param arg1 A key that will categorize this release call
-         *
-         *@return boolean Whether to allow an interface to be releaed
-         */
-        public boolean release(UsbInterface arg0, Object arg1)
-        {
-
-            String key = (String)arg1;
-
-            if ( key == null )
-                return releasePolicy;
-
-            if ( key.compareTo("key1")==0 )
-                return true;
-
-            if ( key.compareTo("key2")==0 )
-                return false;
-
-            return releasePolicy;
-        }
-
-        /**Method that should be called from an open using
-         * the non default interface policy
-         *
-         *@param arg0 The current UsbPipe that is trying to be opened
-         *@param arg1 A key that will categorize this open call
-         *
-         *@return boolean Whether to allow a pipe to be opened
-         */
-        public boolean open(UsbPipe arg0, Object arg1)
-        {
-
-            String key = (String)arg1;
-
-            if ( key == null )
-                return openPolicy;
-
-            if ( key.compareTo("key1")==0 )
-                return true;
-
-            if ( key.compareTo("key2")==0 )
-                return false;
-
-
-            return openPolicy;
         }
 
         /**Method that should be called from a claim using
          * the non default interface policy
          *
-         *@param arg0 The current UsbInterface that is being released
+         *@param arg0 The current UsbInterface that is being claimed
          *
          *@return boolean Whether to allow an interface to attempt
          *a force claim
@@ -595,24 +292,6 @@ public class UsbInterfacePolicyTest extends TestCase
         {
             forceClaimTag = true;
             return forceClaimPolicy;
-        }
-
-        /**Allows a user to dynamically set the release policy
-         *
-         * @param releaseIn The new release policy
-         */
-        public void setReleasePolicy(boolean releaseIn)
-        {
-            releasePolicy = releaseIn;
-        }
-
-        /**Allows a user to dynamically set the open policy
-         *
-         * @param openIn The new open policy
-         */
-        public void setOpenPolicy(boolean openIn)
-        {
-            openPolicy = openIn;
         }
 
         /**Allows a user to dynamically set the force claim policy
@@ -648,8 +327,6 @@ public class UsbInterfacePolicyTest extends TestCase
             return forceClaimTag;
         }
 
-        private boolean releasePolicy;
-        private boolean openPolicy;
         private boolean forceClaimPolicy;
         private boolean forceClaimTag;
 

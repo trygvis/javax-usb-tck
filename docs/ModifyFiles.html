@@ -1,0 +1,57 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>Modify Files for JSR80 javax.USB TCK</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h2 align="center">Modify Files for Building Images</h2>
+
+<br>
+
+<p>The Cypress EZ-USB FX Development Kit provides several C Language Files that are 
+built into the EEPROM Images for the Development Boards.</p>
+
+<p>These files must be personalized to operate correctly with the JSR80 javax.USB TCK.  
+Please follow the instructions below as to which files will be changed and how those files
+need to be modified.  These modifications will cover everything necessary for all three
+images used in the JSR80 javax.USB TCK tests (BULKINT.B6, ISODCP.B6 and TOPOLOGY.B6).</p>
+
+<p><strong>Note: The following instructions are based on the EZ-USB Development Tools v2.61.700.
+  If you are using a different version of the EZ-USB Development Tools, the files may
+  look somewhat different.  Please make the modifications below accordingly.</strong></p>
+
+
+<p><strong>Steps to Modify Files:</strong><p>
+
+<ol>
+  <li>Modify the FW.C File for all three Images: <a href="FW_changes.html">FW.C Modifications</a>
+  <li>Modify the PERIPH.C File for the BULKINT Image: <a href="BULKINT_PERIPH.html">BULKINT PERIPH.C Modifications</a>
+  <li>Modify the PERIPH.C File for the ISODCP Image: <a href="ISODCP_PERIPH.html">ISODCP PERIPH.C Modifications</a>
+</ol>
+
+<p><strong> Note: Please be sure that the modified FW.C file has been copied into
+   all three subdirectories (BULKINT, ISODCP, TOPOLOGY).</strong></p>
+
+
+<br>
+<p>Author: <a href="Tckteam.html">TCK Team</a></p>
+<hr>
+<br>
+<div align="center">
+<p><a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="images.html">Building the Images</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="running.html">Running the Tests</a>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+<a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="changes.html">Change History</a>
+</div>
+
+</body>
+</html>
+

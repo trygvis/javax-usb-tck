@@ -9,6 +9,15 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ */
+
 import java.util.*;
 
 import javax.usb.*;
@@ -326,8 +335,7 @@ public class DefaultControlPipeTestIRPList extends TestCase
         if ( SyncOrAsync == SYNC_SUBMIT )
         {
             VerifyIrpMethods.printDebug("RoundTripTestIRPList -- SYNC");
-        }
-        else
+        } else
         {
             VerifyIrpMethods.printDebug("RoundTripTestIRPList -- ASYNC");
         }
@@ -394,8 +402,7 @@ public class DefaultControlPipeTestIRPList extends TestCase
         {
             fail("Unexpected failure submitting IRP List.");
             return;
-        }
-        else
+        } else
         {
             //no exceptions thrown on submit, so verify data
             for ( int i = 0; i<numIRPPairs; i++ )
@@ -501,8 +508,7 @@ public class DefaultControlPipeTestIRPList extends TestCase
                     assertFalse("isUsbException() is true for IRP after syncSubmit returned",
                                 ((UsbControlIrp)listOfUsbControlIrps.get(i)).isUsbException());
                 }
-            }
-            else
+            } else
             {
                 usbDevice.asyncSubmit(listOfUsbControlIrps);
                 //wait for each IRP in turn to be complete
@@ -513,19 +519,22 @@ public class DefaultControlPipeTestIRPList extends TestCase
                     ((UsbControlIrp)listOfUsbControlIrps.get(i)).waitUntilComplete(5000);
                     assertTrue("isComplete() not true for IRP after waitUntilComplete(..)",
                                ((UsbControlIrp)listOfUsbControlIrps.get(i)).isComplete());
-                    assertFalse("isUsbException() is true for IRP after waitUntilComplete(..)",
+                    assertFalse("isUsbException() is true for IRP after waitUntilComplete(..): " + 
+                                ((UsbControlIrp)listOfUsbControlIrps.get(i)).getUsbException(),
                                 ((UsbControlIrp)listOfUsbControlIrps.get(i)).isUsbException());
                 }
             }
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             /* The exception sould indicate the reason for the failure.
              * For this example, we'll just stop trying.
              */
             fail("No exceptions were expected in this test.  DCP submission failed." + uE.getMessage());
             return false;
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 //		finally
 //		{
 
@@ -547,13 +556,11 @@ public class DefaultControlPipeTestIRPList extends TestCase
                 }
                 Thread.sleep( 5 ); //wait 5 ms before checkin for event
             }
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             fail("Sleep was interrupted");
             return false;
-        }
-        finally
+        } finally
         {
             assertEquals("Did not receive all DeviceDataEvents.", numIrpPairs * 2, listOfDeviceEvents.size());
             numSubmits = numSubmits + (numIrpPairs * 2);
@@ -590,7 +597,7 @@ public class DefaultControlPipeTestIRPList extends TestCase
     private static final boolean SYNC_SUBMIT = true;
     private static final boolean ASYNC_SUBMIT = false;
     boolean [] transmitList= {SYNC_SUBMIT, ASYNC_SUBMIT};
-  
+
     private static final byte[] manufacturerString =  { (byte) 26,   //length of descriptor
         (byte) UsbConst.DESCRIPTOR_TYPE_STRING,
         (byte)'M',(byte) 0x00,

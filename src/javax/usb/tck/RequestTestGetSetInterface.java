@@ -9,6 +9,19 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------- ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ * $P2           tck.rel1 040916 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ * $P3           tck.rel1 300916 raulortz Change code to check RECIPIENT, DIRECTION
+ *                                        and TYPE in the verification of bmRequestType
+ */
 
 import javax.usb.*;
 import javax.usb.event.*;
@@ -39,13 +52,29 @@ public class RequestTestGetSetInterface extends TestCase
         usbDevice = FindProgrammableDevice.getInstance().getTopologyTestDevice();
         assertNotNull("Device required for test not found",usbDevice);
         usbDevice.addUsbDeviceListener(deviceListener);
-
     }
     public void tearDown()
     {
-        usbDevice.removeUsbDeviceListener(deviceListener); 
+        if (usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) 2).isClaimed())
+        {
+            try
+            {
+                usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) 2).release();
+            } catch ( UsbClaimException uCE )
+            {
+                fail("UsbInterface reports interface is claimed, release method throws" +
+                     "UsbClaimException (device not claimed): " + uCE.getMessage());
+            } catch ( UsbException uE )
+            {
+                fail("release method unable to release UsbInterface: " + uE.getMessage());
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
+        }
+        usbDevice.removeUsbDeviceListener(deviceListener);
 
-    }   
+    }
 
     public void testSetAndGetInterfaceStatic()
 
@@ -60,7 +89,7 @@ public class RequestTestGetSetInterface extends TestCase
 
         /*
          * Interface values of 0, 1 and 2 are valid with topology.b6 image
-         */     
+         */
 
         short expectedInterfaceNumber;
         byte  actualInterfaceNumber;
@@ -70,11 +99,11 @@ public class RequestTestGetSetInterface extends TestCase
         boolean usbExceptionThrown;
 
         /********************************************************************
-         * Set Interface AlternateSetting to a known value and verify 
+         * Set Interface AlternateSetting to a known value and verify
          * with getInterface
          ********************************************************************/
 
-        configurationNumber = 2;    
+        configurationNumber = 2;
         expectedInterfaceNumber = 2;
         expectedAlternateSetting = 1;
         LastUsbDeviceDataEvent = null;
@@ -82,26 +111,25 @@ public class RequestTestGetSetInterface extends TestCase
 
         try
         {
-            // Set configuration then set Interface to a known value 
+            // Set configuration then set Interface to a known value
 
             StandardRequest.setConfiguration(usbDevice, configurationNumber);
             try
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
-            // Claim the interface before setting it 	
+            // Claim the interface before setting it
             usbDevice.getUsbConfiguration((byte)configurationNumber).getUsbInterface((byte)expectedInterfaceNumber).claim();
 
             LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null;    
+            LastUsbDeviceErrorEvent = null;
 
-            StandardRequest.setInterface(usbDevice, expectedInterfaceNumber, expectedAlternateSetting);         
+            StandardRequest.setInterface(usbDevice, expectedInterfaceNumber, expectedAlternateSetting);
 
             try
             {
@@ -117,21 +145,22 @@ public class RequestTestGetSetInterface extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
-            fail("Got exception setting Interface to a valid value. Exception message:  " + uE.getMessage());                   
-        }
+            fail("Got exception setting Interface to a valid value. Exception message:  " + uE.getMessage());
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         /* Verify proper listener event received */
         assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
-        assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);    
+        assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
         verifySetInterfaceIrp(expectedAlternateSetting,expectedInterfaceNumber);
 
         /* Now we'll get the current Interface Alternate Setting we just set. */
@@ -145,17 +174,16 @@ public class RequestTestGetSetInterface extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
             LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null;         
+            LastUsbDeviceErrorEvent = null;
             actualAlternateSetting = StandardRequest.getInterface(usbDevice,expectedInterfaceNumber);
             assertEquals("Alternate Interface: expected = " + UsbUtil.toHexString(expectedAlternateSetting)
-                         + "actual: "+ UsbUtil.toHexString(actualAlternateSetting), 
+                         + "actual: "+ UsbUtil.toHexString(actualAlternateSetting),
                          expectedAlternateSetting, actualAlternateSetting);
 
             try
@@ -172,14 +200,12 @@ public class RequestTestGetSetInterface extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("Couldn't get current configuration number. Exception message:  " + uE.getMessage());
         }
@@ -187,81 +213,70 @@ public class RequestTestGetSetInterface extends TestCase
         /* Verify proper listener event received */
         assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
         assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
-        verifyGetInterfaceIrp(expectedInterfaceNumber); 
+        verifyGetInterfaceIrp(expectedInterfaceNumber);
 
 
         /********************************************************************************
-         * Try to set the interface alternate setting to an invalid value.  
+         * Try to set the interface alternate setting to an invalid value.
          * UsbException expected.
          ********************************************************************************/
         usbExceptionThrown = false;
-        configurationNumber = 2;    
+        configurationNumber = 2;
         expectedInterfaceNumber = 3;
         expectedAlternateSetting = 2;
         LastUsbDeviceDataEvent = null;
-        LastUsbDeviceErrorEvent = null;     
+        LastUsbDeviceErrorEvent = null;
 
         try
         {
-            /* First set Interface with an invalid Alternate Setting value */ 
+            /* First set Interface with an invalid Alternate Setting value */
 
             StandardRequest.setConfiguration(usbDevice, configurationNumber);
             try
             {
-                /*Wait for setConfiguration Data event before continuing */ 
+                /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
             LastUsbDeviceDataEvent = null;
-            LastUsbDeviceErrorEvent = null;     
+            LastUsbDeviceErrorEvent = null;
             StandardRequest.setInterface(usbDevice, expectedInterfaceNumber, expectedAlternateSetting);
-            fail("Shouldn't get here because exception should be thrown for bad interface number of " 
+            fail("Shouldn't get here because exception should be thrown for bad interface number of "
                  + UsbUtil.toHexString(expectedInterfaceNumber));
 
-            try
-            {
-                /*
-                * Wait for device event before leaving setInterface routine
-                */
-                for ( int i = 0; i < 100; i++ )
-                {
-                    if ( (LastUsbDeviceDataEvent != null)|
-                         (LastUsbDeviceErrorEvent != null) )
-                    {
-                        break;
-                    }
-                    Thread.sleep( 20 ); //wait 20 ms before checking for event
-                }
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted");
-            }
-
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             usbExceptionThrown = true;
-        }
-        finally
+        } finally
         {
-            assertTrue("UsbException should have been thrown for bad Interface number of " 
-                       + UsbUtil.toHexString(expectedInterfaceNumber), usbExceptionThrown);    
+            assertTrue("UsbException should have been thrown for bad Interface number of "
+                       + UsbUtil.toHexString(expectedInterfaceNumber), usbExceptionThrown);
         }
+
         try
         {
-            Thread.sleep(250);
-        }
-        catch ( InterruptedException e )
+            /*
+            * Wait for device event before leaving setInterface routine
+            */
+            for ( int i = 0; i < 100; i++ )
+            {
+                if ( (LastUsbDeviceDataEvent != null)|
+                     (LastUsbDeviceErrorEvent != null) )
+                {
+                    break;
+                }
+                Thread.sleep( 20 ); //wait 20 ms before checking for event
+            }
+        } catch ( InterruptedException e )
         {
+            fail("Sleep was interrupted");
         }
         /* Verify proper listener event received
          * Note that these asserts are opposite the other event asserts
-         * because an exception is expected. 
+         * because an exception is expected.
          * */
         assertNull("DeviceDataEvent should be null.", LastUsbDeviceDataEvent);
         assertNotNull("DeviceErrorEvent should not be null.", LastUsbDeviceErrorEvent);
@@ -281,8 +296,7 @@ public class RequestTestGetSetInterface extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
@@ -308,14 +322,11 @@ public class RequestTestGetSetInterface extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
-
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("Couldn't get current configuration number. Exception message:  " + uE.getMessage());
         }
@@ -330,11 +341,13 @@ public class RequestTestGetSetInterface extends TestCase
         try
         {
             usbDevice.getUsbConfiguration((byte)configurationNumber).getUsbInterface((byte)expectedInterfaceNumber).release();      
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("Got exception releasing Interface. Exception message:  " + uE.getMessage());                  
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
     }
 
@@ -383,8 +396,7 @@ public class RequestTestGetSetInterface extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
@@ -412,17 +424,19 @@ public class RequestTestGetSetInterface extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("Got exception setting Interface to a valid value. Exception message:  " + uE.getMessage());                   
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
+
 
         /* Verify proper listener event received */
         assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
@@ -440,8 +454,7 @@ public class RequestTestGetSetInterface extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
@@ -467,14 +480,12 @@ public class RequestTestGetSetInterface extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("Couldn't get current configuration number. Exception message:  " + uE.getMessage());
         }
@@ -504,8 +515,7 @@ public class RequestTestGetSetInterface extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */ 
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
@@ -516,42 +526,32 @@ public class RequestTestGetSetInterface extends TestCase
             fail("Shouldn't get here because exception should be thrown for bad interface number of " 
                  + UsbUtil.toHexString(expectedInterfaceNumber));
 
-            try
-            {
-                /*
-                * Wait for device event before leaving setInterface routine */
-
-                for ( int i = 0; i < 100; i++ )
-                {
-                    if ( (LastUsbDeviceDataEvent != null)|
-                         (LastUsbDeviceErrorEvent != null) )
-                    {
-                        break;
-                    }
-                    Thread.sleep( 20 ); //wait 20 ms before checking for event
-                }
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted");
-            }
-
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             usbExceptionThrown = true;
-        }
-        finally
+        } finally
         {
             assertTrue("UsbException should have been thrown for bad Interface number of " 
                        + UsbUtil.toHexString(expectedInterfaceNumber), usbExceptionThrown);    
         }
+
         try
         {
-            Thread.sleep(250);
-        }
-        catch ( InterruptedException e )
+            /*
+            * Wait for device event before leaving getInterface routine
+            */
+            for ( int i = 0; i < 100; i++ )
+            {
+                if ( (LastUsbDeviceDataEvent != null)|
+                     (LastUsbDeviceErrorEvent != null) )
+                {
+                    break;
+                }
+                Thread.sleep( 20 ); //wait 20 ms before checking for event
+            }
+        } catch ( InterruptedException e )
         {
+            fail("Sleep was interrupted");
         }
         /* Verify proper listener event received
          * Note that these asserts are opposite the other event asserts
@@ -575,8 +575,7 @@ public class RequestTestGetSetInterface extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
@@ -602,14 +601,12 @@ public class RequestTestGetSetInterface extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("Couldn't get current configuration number. Exception message:  " + uE.getMessage());
         }
@@ -617,26 +614,30 @@ public class RequestTestGetSetInterface extends TestCase
         /* Verify proper listener event received */
         assertNotNull("DeviceDataEvent should not be null.", LastUsbDeviceDataEvent);
         assertNull("DeviceErrorEvent should be null.", LastUsbDeviceErrorEvent);
-        verifyGetInterfaceIrp(expectedInterfaceNumber);     
+        verifyGetInterfaceIrp(expectedInterfaceNumber);
 
         // Release the interface, so it may be claimed by other threads
         try
         {
             usbDevice.getUsbConfiguration((byte)configurationNumber).getUsbInterface((byte)expectedInterfaceNumber).release();
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
-            fail("Got exception releasing Interface. Exception message:  " + uE.getMessage());                  
-        }
+            fail("Got exception releasing Interface. Exception message:  " + uE.getMessage());
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
     }
+
 
     private void verifyGetInterfaceIrp (short expectedwIndex)
     {
         //IRP values expected in get interface Irp
 
-        byte expectedbmRequestType = (UsbConst.REQUESTTYPE_RECIPIENT_INTERFACE +
-                                      UsbConst.REQUESTTYPE_DIRECTION_IN);
+        byte expectedbmRequestType = UsbConst.REQUESTTYPE_RECIPIENT_INTERFACE |               // @P3C
+                                     UsbConst.REQUESTTYPE_TYPE_STANDARD |                     // @P3A
+                                     UsbConst.REQUESTTYPE_DIRECTION_IN;                       // @P3C
         byte expectedbRequest = UsbConst.REQUEST_GET_INTERFACE;
         short expectedwValue = 0;
 
@@ -651,7 +652,9 @@ public class RequestTestGetSetInterface extends TestCase
     {
         //IRP values expected in set interface Irp
 
-        byte expectedbmRequestType = UsbConst.REQUESTTYPE_RECIPIENT_INTERFACE;
+        byte expectedbmRequestType = UsbConst.REQUESTTYPE_RECIPIENT_INTERFACE |               // @P3C
+                                     UsbConst.REQUESTTYPE_TYPE_STANDARD |                     // @P3A
+                                     UsbConst.REQUESTTYPE_DIRECTION_OUT;                      // @P3A
         byte expectedbRequest = UsbConst.REQUEST_SET_INTERFACE;
 
         VerifyIrpMethods.verifyRequestTest(LastUsbDeviceDataEvent.getUsbControlIrp(),
@@ -676,15 +679,15 @@ public class RequestTestGetSetInterface extends TestCase
             LastUsbDeviceErrorEvent = udeE;
 
         }
-        public void usbDeviceDetached(UsbDeviceEvent udE) 
+        public void usbDeviceDetached(UsbDeviceEvent udE)
         {
             assertNotNull(udE);
             fail("No devices should be detached during this test.");
-        }           
-    };          
+        }
+    };
 
     private UsbDeviceDataEvent LastUsbDeviceDataEvent = null ;
     private UsbDeviceErrorEvent LastUsbDeviceErrorEvent = null;
-    private UsbDevice usbDevice;    
+    private UsbDevice usbDevice;
 
 }

@@ -1,0 +1,1048 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>Modify Files for Building Images</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h2 align="center">Modify PERIPH.C for BULKINT.B6 Image</h2>
+
+<br>
+
+<p>The periph.c file holds the hooks that are necessary to implement USB peripheral 
+functions and these hooks must be fleshed out, in order to work with the JSR80 
+javax.USB TCK implementation.  Some of the code listed below will actually be 
+incorporated into functions that already exist in the periph.c file, while other 
+sections of code contain new functions and variables that are unique to this JSR80 
+javax.USB TCK implementation.  Please follow the instructions below to set up the 
+periph.c framework file for the BULKINT image.</p>
+
+<p>Please navigate first to the PERIPH.C file that is located (following completion of 
+step 1 of the "Steps to Build EEPROM Images") in the subdirectory C:\TCK\BULKINT. </p>
+
+<p>Now, follow the steps listed below to add the necessary lines to PERIPH.C</p>
+
+
+<p><strong>Steps to Modify PERIPH.C:</strong><p>
+
+<ol>
+  <li>Rename the file periph.c to the new name bulkint.c.  This will prevent confusion 
+    among the different implementations of the periph.c file for the different images.
+  <li>In the header comments, change the "File:" name to bulkint.c.
+  <li>In the header comments, modify the "Contents" entry to read the following:
+	<blockquote>      
+        <font size=2>
+      //  Contents:     Function required for JSR80--javax.usb TCK for the bulk
+      <br>//                and interrupt I/O tests.
+      <br>//                This file is based on the file, periph.c.
+        </font>
+    </blockquote>
+  <li>Add the following lines right after the last variable declaration at the top 
+    of this module, which is "BYTE    AlternateSetting;".  These lines represent new 
+    code that is unique to this JSR Javax.usb implementation.
+    <blockquote>
+        <font size=2>
+	    //-----------------------------------------------------------------------------
+        <br>// Start javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb prototypes
+        <br>//-----------------------------------------------------------------------------
+        <br>void processOUTIRPs(BYTE EPNumberIndex, const BYTE* const OUT_EPdata, const WORD length_OUT_EPdata);
+        <br>void moveOUTArrayToINArray();
+        <br>void moveINArrayToINEndPoint(BYTE EPNumberIndex);
+        <br>BYTE * GetINEndpointBufferAddress(BYTE EPNumberIndex);
+        <br>BYTE * GetINEndpointByteCountAddress(BYTE EPNumberIndex);
+        <br>WORD GetINEndpointMaxPacketSize(BYTE EPNumberIndex);
+        <br>void DoBulkIntIn(BYTE EPNumberIndex);
+        <br>void initAllArrays();
+        <br> 
+        <br>void invert_bits (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData, WORD* manipulatedData_length);
+        <br>void invert_alternate_bits (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData, WORD* manipulatedData_length);
+        <br>void drop_every_third (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData, WORD* manipulatedData_length);
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb defines
+        <br>//-----------------------------------------------------------------------------
+        <br>#define MAX_NUMBER_IRPS 3
+        <br>#define MAX_IRP_LENGTH 200
+        <br>#define NUMBER_OF_ENDPOINTS 1  //code is written to support separate arrays for each endpoint, but
+        <br>                               //was later changed to use the same arrays for all endpoints. This is
+        <br>                               //adequate for this test device
+        <br>#define PASSTHROUGH_TRANSFORM 1
+        <br>#define INVERT_BITS_TRANSFORM 2
+        <br>#define INVERT_ALT_BITS_TRANSFORM 3
+        <br>#define DROP_EVERY_THIRD_TRANSFORM 4
+        <br> 
+        <br>#define EP1 1
+        <br>#define EP2 2
+        <br>#define EP3 3
+        <br>#define EP4 4
+        <br>#define EP5 5
+        <br>#define EP6 6
+        <br>#define EP7 7
+        <br> 
+        <br>#define SHARED_EP_INDEX 0
+        <br> 
+        <br> 
+        <br>#define VR_RENUM            0xa8 // renum
+        <br>//-----------------------------------------------------------------------------
+        <br>// The ***SZ #defines must match the same named equ in dscr.a51
+        <br>//-----------------------------------------------------------------------------
+        <br>#define EP1INSZ      64
+        <br>#define EP1OUTSZ     64
+        <br>#define EP2INSZ      8
+        <br>#define EP2OUTSZ     8
+        <br>#define EP3INSZ      64
+        <br>#define EP3OUTSZ     64
+        <br>#define EP4INSZ      8
+        <br>#define EP4OUTSZ     8
+        <br>#define EP5INSZ      16
+        <br>#define EP5OUTSZ     16
+        <br>#define EP6INSZ      32
+        <br>#define EP6OUTSZ     32
+        <br>#define EP7INSZ      64
+        <br>#define EP7OUTSZ     64
+        <br>
+        <br>
+        <br>
+        <br>#define IN_EP_NOT_READY 1
+        <br>#define IN_EP_READY 0
+        <br> 
+        <br>#define TCMS 500                                // Time constant in milliseconds (incremented in SOF ISR)
+        <br>
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb variables
+        <br>//-----------------------------------------------------------------------------
+        <br>char count;                      // incrementing count value to display
+        <br>int tick;                           // Num milliseconds since count changed
+        <br>char Digit[]={0xc0,0xf9,0xa4,0xb0,0x99,0x92,0x82,0xf8,0x80,0x98,0x88,0x83,0xc6,0xa1,0x86,0x8e};
+        <br>
+        <br>WORD  wEPOUTStartIndex[NUMBER_OF_ENDPOINTS];     //index at which to start/continue writing current IRP; one for each EP
+        <br>BYTE  bEPOUTIRPIndex[NUMBER_OF_ENDPOINTS];       //current IRP for writing OUT data; one for each EP;
+        <br>                                                 //ranges from (0 to MAX_NUMBER_IRPS - 1)
+        <br>BYTE bEPOUTIRPInProgress[NUMBER_OF_ENDPOINTS];  //is there an OUT IRP for which all packets
+        <br>						        // have not yet been received?
+        <br>//array of IRPS for OUT EPs
+        <br>BYTE xdata bEPOUTIRPs[NUMBER_OF_ENDPOINTS][MAX_NUMBER_IRPS][MAX_IRP_LENGTH]; 
+        <br>//array of IRPS for IN EPs
+        <br>BYTE xdata bEPINIRPs[NUMBER_OF_ENDPOINTS][MAX_NUMBER_IRPS][MAX_IRP_LENGTH];     
+        <br>//size of each IN IRP after transform
+        <br>WORD xdata wEPINIRPSizes[NUMBER_OF_ENDPOINTS][MAX_NUMBER_IRPS];     
+        <br>//size of each original OUT IRP
+        <br>WORD xdata wEPOrigOUTIRPSizes[NUMBER_OF_ENDPOINTS][MAX_NUMBER_IRPS];     
+        <br>
+        <br>//flags for filling the IN buffers of the device
+        <br>BYTE bEPINIRPIndex[NUMBER_OF_ENDPOINTS];          //current IRP to be transferred to IN endpoint
+        <br>BYTE bEPINIRPInProgress[NUMBER_OF_ENDPOINTS];     //is there an IN IRP for which all packets have not 
+        <br>					       //yet been transferred to EP
+        <br>BYTE bEPINEndpointReady[NUMBER_OF_ENDPOINTS];  //mark if IN endpoint is not ready to receive new data
+        <br>                                                                                                     //EP will be marked if IN has not been received 
+        <br>				               //since EP was armed
+        <br>WORD wEPINStartIndex[NUMBER_OF_ENDPOINTS];       //index at which to start/continue reading
+        <br>				               // IRP to IN endpoint
+        <br>
+        <br>//-----------------------------------------------------------------------------
+        <br>// javax.usb functions
+        <br>//-----------------------------------------------------------------------------
+        <br>// Display Hex method
+        <br>void display_hex (char val)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// display one hex digit (over i2c bus)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (I2CS & bmSTOP);&nbsp;&nbsp;&nbsp;// wait for STOP bit LOW--last operation complete
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I2CS = 0x80;&nbsp;&nbsp;&nbsp;// set the START bit
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I2DAT = 0x42;&nbsp;&nbsp;&nbsp;// IO expander address=42, LSB=0 for write
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (!(I2CS & bmDONE));&nbsp;&nbsp;&nbsp;// wait for DONE=1 (i2c transmit complete)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I2DAT = val;&nbsp;&nbsp;&nbsp;// send the data byte
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (!(I2CS & bmDONE));&nbsp;&nbsp;&nbsp;// wait for DONE=1 (i2c transmit complete)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;I2CS = 64;&nbsp;&nbsp;&nbsp;// set the STOP bit
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// passthrough--data is moved, unchanged, from one buffer to another
+        <br>//-----------------------------------------------------------------------------
+        <br>void passthrough ( BYTE* inputdata,  WORD inputdata_length, BYTE* manipulatedData,WORD* manipulatedData_length)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*manipulatedData_length = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i &lt; inputdata_length; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manipulatedData[i] = inputdata[i];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*manipulatedData_length)++;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// invert_bits--data is moved, with all bits inverted, from one buffer to another
+        <br>//-----------------------------------------------------------------------------
+        <br>void invert_bits (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData, WORD* manipulatedData_length)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*manipulatedData_length = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i &lt; inputdata_length; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manipulatedData[i] = ~inputdata[i];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*manipulatedData_length)++;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// invert_alternate_bits--data is moved, with every odd bit inverted, from one buffer to another
+        <br>//-----------------------------------------------------------------------------
+        <br>void invert_alternate_bits (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData, WORD* manipulatedData_length)
+        <br>{
+        <br>#define INVERTMASK  0x55
+        <br>#define UNCHANGEDMASK 0xAA
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE unchangedbits;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE invertedbits;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*manipulatedData_length = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i &lt; inputdata_length; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unchangedbits = inputdata[i] & UNCHANGEDMASK;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;invertedbits = ~inputdata[i] & INVERTMASK;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manipulatedData[i] = unchangedbits | invertedbits;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*manipulatedData_length)++;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// drop_every_third--data is moved, dropping every third byte from the source, from one buffer to another
+        <br>//-----------------------------------------------------------------------------
+        <br>void drop_every_third (BYTE* inputdata, WORD inputdata_length, BYTE* manipulatedData, WORD* manipulatedData_length)
+        <br>{
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int j;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int dropped_bytes = 0;
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i &lt; inputdata_length; i++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;j = i + 1;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((j%3) != 0)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manipulatedData[i-dropped_bytes] = inputdata[i];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dropped_bytes++;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*manipulatedData_length = i-dropped_bytes;
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// initAllArrays--initialize all arrays to zero
+        <br>//-----------------------------------------------------------------------------
+        <br>void initAllArrays()
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int j;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int k;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int l;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//init all arrays
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j=0; j &lt; NUMBER_OF_ENDPOINTS; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPOUTStartIndex[j] = 0;         //initial start index is zero
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPOUTIRPIndex[j] = 0;           //IRPS will be rotated through 0,1,2,0,1,2,...
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPOUTIRPInProgress[j] = 0;      //at init, there is no IRP in progress
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINIRPIndex[j] = 0;       //current IRP to be transferred to IN endpoint
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINIRPInProgress[j] = 0;  //is there an IN IRP for which all packets 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//have not yet been transferred to EP
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINEndpointReady[j] = 0;  //mark if this IN endpoint is not ready to receive new data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPINStartIndex[j] = 0;     //initial start index is zero
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (k=0; k &lt; MAX_NUMBER_IRPS; k++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPINIRPSizes[j][k] = 0;     //size of each IN IRP after transform
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPOrigOUTIRPSizes[j][k] = 0; //size of original OUT IRP
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (l=0; l &lt; MAX_IRP_LENGTH; l++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPOUTIRPs[j][k][l] = 0;     //initialize contents of all IRPs to zero
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINIRPs[j][k][l] = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//arm the endpoints
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN1BC = 0;                              // arm the first IN2 transfer by loading byte count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT1BC = 0;                             // arm the first OUT2 transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN2BC = 0;                              // arm the first IN2 transfer by loading byte count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT2BC = 0;                             // arm the first OUT2 transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN3BC = 0;                              // arm the first IN2 transfer by loading byte count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT3BC = 0;                             // arm the first OUT2 transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN4BC = 0;                              // arm the first IN2 transfer by loading byte count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT4BC = 0;                             // arm the first OUT2 transfer
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// GetINEndpointBufferAddress--get IN buffer address based on endpoint number
+        <br>//--------------------------------------------------------------------------
+        <br>BYTE * GetINEndpointBufferAddress(BYTE EPNumberIndex)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE * Address;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (EPNumberIndex)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP1:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN1BUF;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP2:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN2BUF;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP3:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN3BUF;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP4:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN4BUF;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP5:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN5BUF;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP6:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN6BUF;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP7:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN7BUF;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return Address;
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// GetINEndpointByteCountAddress--get IN byte count address based on endpoint number
+        <br>//--------------------------------------------------------------------------
+        <br>BYTE * GetINEndpointByteCountAddress(BYTE EPNumberIndex)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE * Address;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (EPNumberIndex)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP1:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN1BC;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP2:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN2BC;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP3:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN3BC;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP4:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN4BC;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP5:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN5BC;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP6:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN6BC;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case EP7:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Address = &IN7BC;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return Address;
+        <br>}
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// GetINEndpointMaxPacketSize--get IN ednpoint maxpacketsize based on endpoint number
+        <br>//--------------------------------------------------------------------------
+        <br>WORD GetINEndpointMaxPacketSize(BYTE EPNumberIndex)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD EPMaxPacketSize;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (EPNumberIndex)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 0:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPMaxPacketSize = EP1INSZ;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 1:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPMaxPacketSize = EP2INSZ;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 2:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPMaxPacketSize = EP3INSZ;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 3:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPMaxPacketSize = EP4INSZ;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 4:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPMaxPacketSize = EP5INSZ;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 5:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPMaxPacketSize = EP6INSZ;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 6:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPMaxPacketSize = EP7INSZ;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return EPMaxPacketSize;
+        <br>}
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// DoBulkIntIn -- once an IN is received, move any ready data from holding array to IN endpoint
+        <br>//--------------------------------------------------------------------------
+        <br>void DoBulkIntIn(BYTE EPNumberIndex)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE bINIRPIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//endpoint is no longer armed
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINEndpointReady[SHARED_EP_INDEX] = IN_EP_READY;
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get current IRP for IN
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bINIRPIndex = bEPINIRPIndex[SHARED_EP_INDEX];
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//if there is an IRP being transferred to the endpoint then setup the next transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//OR
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//if the current IN IRP to read from has a non-zero size AND it's not being written to
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((bEPINIRPInProgress[SHARED_EP_INDEX] != 0) ||
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;((wEPINIRPSizes[SHARED_EP_INDEX][bINIRPIndex] != 0) &amp;&amp;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(bEPOUTIRPInProgress[SHARED_EP_INDEX] == 0)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//the IN endpoint needs the next set of data and arm the endpoint
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveINArrayToINEndPoint(EPNumberIndex);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// processOUTIRPs -- once an OUT is received, move data from OUT to holding array and,
+        <br>//       if IN endpoint is available, to IN endpoint
+        <br>//--------------------------------------------------------------------------
+        <br>void processOUTIRPs(BYTE EPNumberIndex, const BYTE* const pOUTBuffer, const WORD bytecountOUTBuffer)
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD wStartIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE btIRPIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD IRPSize;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int  j;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE arraycontent;
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//set start point for writing to IRP array
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 == bEPOUTIRPInProgress[SHARED_EP_INDEX])
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wStartIndex = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wStartIndex = wEPOUTStartIndex[SHARED_EP_INDEX];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get which IRP array to write to
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;btIRPIndex = bEPOUTIRPIndex[SHARED_EP_INDEX];
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//read all of the data from the OUT buffer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//stop reading when the byte count of the OUT buffer is reached
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// or when the array is full
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j=0; ((j &lt; bytecountOUTBuffer) &amp;&amp; ((j + wStartIndex) &lt; (MAX_IRP_LENGTH - 1))) ; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][j + wStartIndex] = pOUTBuffer[j];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arraycontent = bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][j + wStartIndex];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get the size of the IRP out of 2nd and 3rd byte of IRP, but it must be less than or equal
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//to max IRP Size or this code will end up addressing out of bounds of the array
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// --the IRP coming from the host should never be larger than the MAX_IRP_LENGTH for this
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//device.  It it is then the test is likely to fail
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IRPSize = bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][1]&lt;&lt;8;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IRPSize = IRPSize + bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][2];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IRPSize &gt; MAX_IRP_LENGTH) {IRPSize = MAX_IRP_LENGTH;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//if we haven't reached IRPSize then there is more of the IRP to come in future OUTs
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((wStartIndex + j) &lt; IRPSize)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//set IRP in progress
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//IRP index is already pointing to the correct IRP
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPOUTIRPInProgress[SHARED_EP_INDEX] = 1;
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//set start index for writing the array next time we come in
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPOUTStartIndex[SHARED_EP_INDEX] = j + wStartIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//transform the IRP and copy the IRP to the IN IRP array
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveOUTArrayToINArray();
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//the IN endpoint may be ready for this data, so try to start moving it
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;moveINArrayToINEndPoint(EPNumberIndex);
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//set IRP in progress to no IRP in progress
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//IRP index needs to point to next IRP in array or back to start of array
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//point to start of next IRP array
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPOUTIRPInProgress[SHARED_EP_INDEX] = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPOUTIRPIndex[SHARED_EP_INDEX] = bEPOUTIRPIndex[SHARED_EP_INDEX] + 1;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bEPOUTIRPIndex[SHARED_EP_INDEX] &gt; (MAX_NUMBER_IRPS - 1))
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPOUTIRPIndex[SHARED_EP_INDEX] = bEPOUTIRPIndex[SHARED_EP_INDEX] - MAX_NUMBER_IRPS;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPOUTStartIndex[SHARED_EP_INDEX] = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// moveINArrayToINEndPoint-- move data from holding array to IN endpoint, but don't
+        <br>//       move more than maxpacketsize
+        <br>//--------------------------------------------------------------------------
+        <br>void moveINArrayToINEndPoint(BYTE bEPNumberIndex)
+        <br>{
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE bIRPIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD wIRPSize;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD wStartIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE bByteCount;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int j;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE bEPMaxPacketSize;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE * pbEPBufferAddress;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE * pbEPByteCount;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE bIRPDone;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD wOriginalOutIRPSize;
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPMaxPacketSize = GetINEndpointMaxPacketSize(bEPNumberIndex);
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Ready state for an IN endpoint means that the endpoint is not armed
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//if IN Endpoint is in ready state (bEPINEndpointReady = IN_EP_READY (0)), move data to endpoint
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IN_EP_READY == bEPINEndpointReady[SHARED_EP_INDEX])
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get which IRP array to read from
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bIRPIndex = bEPINIRPIndex[SHARED_EP_INDEX];
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get size of IRP
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wIRPSize = wEPINIRPSizes[SHARED_EP_INDEX][bIRPIndex];
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wOriginalOutIRPSize=wEPOrigOUTIRPSizes[SHARED_EP_INDEX][bIRPIndex];
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//set start point for reading from IRP array
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 == bEPINIRPInProgress[SHARED_EP_INDEX])
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wStartIndex = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wStartIndex = wEPINStartIndex[SHARED_EP_INDEX];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//The only time we need to send a zero packet is when IN IRP Size is less than the IN buffer size
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//and the IN IRP size is a multiple of MaxPacketSize, and the index is pointing 1 past the end
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// of the IN IRP array because all of the IRP data has already been sent.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The IN buffer size is the size of the original OUT IRP.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//and the IRP IN is the same size as the original OUT
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (   (wStartIndex == wIRPSize )
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; (0 == (wIRPSize%((WORD)bEPMaxPacketSize)))
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; (wIRPSize &lt; wOriginalOutIRPSize)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bByteCount = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bIRPDone = 1;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If remaining data in IRP is less than or equal MaxPacketSize then that is what needs to be sent
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if ( (wIRPSize  - wStartIndex) &lt;= (WORD)bEPMaxPacketSize)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bByteCount = wIRPSize - wStartIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//if the remaining data to be sent is MaxPacketSize and the IN IRP is smaller than the IN buffer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//aka the size of the original out buffer then we are going to have to send a zero packet next
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((bByteCount == bEPMaxPacketSize) &amp;&amp; (wIRPSize &lt; wOriginalOutIRPSize))
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bIRPDone = 0; //still need to send a zero packet
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bIRPDone = 1;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// more than a packet left so send a whole packet
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bByteCount = bEPMaxPacketSize;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bIRPDone = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get Buffer Address
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pbEPBufferAddress = GetINEndpointBufferAddress(bEPNumberIndex + 1);
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get Byte Count Address
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pbEPByteCount = GetINEndpointByteCountAddress(bEPNumberIndex + 1);
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//  while (IN1CS & bmBIT2){}  //wait for endpoint IN to free
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//fill the endpoint buffer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bByteCount &gt; 0)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0; j &lt; bByteCount; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pbEPBufferAddress[j] = bEPINIRPs[SHARED_EP_INDEX][bIRPIndex][j + wStartIndex];
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//arm the IN endpoint
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*pbEPByteCount = bByteCount;
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bIRPDone)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//zero this IRP so it is not accidentally used again
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0; j &lt; wIRPSize; j++)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINIRPs[SHARED_EP_INDEX][bIRPIndex][j] = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//IRP is now zero length and available for next OUT data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPINIRPSizes[SHARED_EP_INDEX][bIRPIndex] = 0;
+        <br> 
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//point to next IRP
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINIRPIndex[SHARED_EP_INDEX] = bEPINIRPIndex[SHARED_EP_INDEX] + 1;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bEPINIRPIndex[SHARED_EP_INDEX] &gt; (MAX_NUMBER_IRPS - 1))
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINIRPIndex[SHARED_EP_INDEX] = bEPINIRPIndex[SHARED_EP_INDEX] - MAX_NUMBER_IRPS;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//reset index so it points to start of next array
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPINStartIndex[SHARED_EP_INDEX] = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//set IRPInProgress false
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINIRPInProgress[SHARED_EP_INDEX] = 0;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//set IRPInProgress true
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINIRPInProgress[SHARED_EP_INDEX] = 1;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPINStartIndex[SHARED_EP_INDEX] = j + wStartIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//set that the endpoint is not ready for new data
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//will be made ready when an IN transfer is complete and EP no longer armed
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bEPINEndpointReady[SHARED_EP_INDEX] = IN_EP_NOT_READY;
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>}
+        <br> 
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// moveOUTArrayToINArray-- move data from OUT array to holding array
+        <br>//--------------------------------------------------------------------------
+        <br>void moveOUTArrayToINArray()
+        <br>{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE btIRPIndex;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WORD IRPSize;
+        <br> 
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//the IN array to write to is the same as the OUT array we are copying from
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get which IRP array to write to
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;btIRPIndex = bEPOUTIRPIndex[SHARED_EP_INDEX];
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//This is a simple device which has a set number of IRPs available per endpoint.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//It is expected that for every OUT there will be a IN.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//The max number of outstanding OUTs is the max number of IRPs per endpoint.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//An IN must happen on the corresponding endpoint before the
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//("max number of IRPs" + 1) comes on the OUT or else the OUT data will be tossed.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//The IN buffer must have already been processed or else we're going to throw this data away.
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//If the IN buffer has been processed, the IRP size for the IN IRP will be zero
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 == wEPINIRPSizes[SHARED_EP_INDEX][btIRPIndex])
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//get size of IRP
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IRPSize = bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][1]&lt;&lt;8;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IRPSize = IRPSize + bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][2];
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//save away the original OUT IRP size because this is the size of the IN buffer and will
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//affect whether we may have to send a zero IN packet at any time
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wEPOrigOUTIRPSizes[SHARED_EP_INDEX][btIRPIndex] = IRPSize;
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//transform data and move it to the EPINIRPs array and set IRP size in the EPINIRPSizes array
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][0]) //first byte of IRP is transform type
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case PASSTHROUGH_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;passthrough (&bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][0], IRPSize,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&bEPINIRPs[SHARED_EP_INDEX][btIRPIndex][0], 					       	                
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&wEPINIRPSizes[SHARED_EP_INDEX][btIRPIndex]);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case INVERT_BITS_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;invert_bits (&bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][0], IRPSize,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&bEPINIRPs[SHARED_EP_INDEX][btIRPIndex][0], 						   	       
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&wEPINIRPSizes[SHARED_EP_INDEX][btIRPIndex]);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case INVERT_ALT_BITS_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;invert_alternate_bits (&bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][0], IRPSize,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&bEPINIRPs[SHARED_EP_INDEX][btIRPIndex][0], 		 		 			
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&wEPINIRPSizes[SHARED_EP_INDEX][btIRPIndex]);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case DROP_EVERY_THIRD_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;drop_every_third (&bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][0], IRPSize,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&bEPINIRPs[SHARED_EP_INDEX][btIRPIndex][0], 				 		            
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&wEPINIRPSizes[SHARED_EP_INDEX][btIRPIndex]);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//       case DIFF_EVERY_TWO_TRANSFORM:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//           diff_every_two (&bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][0], IRPSize,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//           &bEPINIRPs[SHARED_EP_INDEX][btIRPIndex][0], &wEPINIRPSizes[SHARED_EP_INDEX][btIRPIndex]);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//           break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//           zero_every_other_byte (&bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][0], 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//IRPSize,&bEPINIRPs[SHARED_EP_INDEX][btIRPIndex][0], 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//&wEPINIRPSizes[SHARED_EP_INDEX][btIRPIndex]);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;passthrough (&bEPOUTIRPs[SHARED_EP_INDEX][btIRPIndex][0], IRPSize,
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&bEPINIRPs[SHARED_EP_INDEX][btIRPIndex][0], 				 	  		       
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&wEPINIRPSizes[SHARED_EP_INDEX][btIRPIndex]);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br> 
+        <br>}
+        <br> 
+        <br>//-----------------------------------------------------------------------------
+        <br>// End javax.usb code
+        <br>//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <br>
+    <font size=4>
+    <p><strong>NOTE: The next 14 steps explain how to flesh out the hooks that already exist 
+    in the initial periph.c file.</strong>
+    </p>
+    </font>
+    <br>
+
+    <li>Please add the following lines to the "void TD_Init(void)" function, directly after 
+    the local variable declaration "Rwuen = TRUE;":
+    <blockquote>
+        <font size=2>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN07VAL = bmEP1 | bmEP2 | bmEP3 | bmEP4;  // Enable Bulk and Interrupt IN Endpoints
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT07VAL = bmEP1 | bmEP2 | bmEP3 | bmEP4; // Enable Bulk and Interrupt OUT Endpoints
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN07IEN = bmEP1 | bmEP2 | bmEP3 | bmEP4;  // Enable EP2IN & EP3IN interrupts
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT07IEN = bmEP1 | bmEP2 | bmEP3 | bmEP4; // Enable EP2OUT & EP3OUT interrupts
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//no iso endpoints; frees up mem from 0x2000-0x27FF (2047 bytes)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//XDATA is placed at 0x2000 for
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ISOCTL |= bmBIT0;              //bmBIT0 is ISODISAB
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;USBIEN = bmSOF;     // Enable SOF interrupt
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EUSB=1;                      // Enable all USB (INT2) interrupts
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EA = 1;                         // Enable 8051 interrupts
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tick=0;                           // Counter for # ms passed since count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// was incremented
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count=0;                        // Current hex value from 0..F displayed
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 0x00=decrement
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_hex(Digit[count]);     // displays the current count
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;initAllArrays();               //set all IRP related arrays to zero
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void TD_Poll(void)" function:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EUSB=0;                                 // turn off USB (SOF) interrupt
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tick &gt; TCMS)                        // if enough ms have passed...
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tick=0;                         // set the ms counter back to zero
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count++;                        // increment the count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count &= 0x0F;                  // ensures the count remains a single hex digit
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_hex(Digit[count] );     // displays count
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EUSB=1;                                         // USB interrupts back on
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "BOOL DR_SetInterface(void)" function 
+    right after the line "AlternateSetting = SETUPDAT[2];":
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// when the interface is changed re-init all of the arrays
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//--------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;initAllArrays();
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "BOOL DR_ClearFeature(void)" function, 
+    right before the "return(TRUE);" line:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// when endpoint is reset re-init all of the arrays
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//--------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;initAllArrays();
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "BOOL DR_VendorCmnd(void)" function, 
+    right before the "return(TRUE);" line:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The only supported vendor request is for renumberation--used for hot plug test
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//--------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (SETUPDAT[1] == VR_RENUM)
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*IN0BUF = 7;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN0BC = (BYTE)1;    // Arm endpoint with # bytes to transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EP0CS |= bmBIT1;    // Acknowledge handshake phase of device request
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_hex(Digit[0]);     // display 0
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_Delay(500);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_hex(Digit[15]);    // display F
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_Delay(500);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_hex(Digit[0]);     // displays 0
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count = 0;                 // reset count to zero
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_Delay(1000);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_Discon(TRUE); // renumerate until setup received
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return(FALSE);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li> Please add the following lines to the "void ISR_Sof(void) interrupt 0" 
+    Interrupt Handler routine, right before the line "EZUSB_IRQ_CLEAR();":
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start of javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tick++;                                         // increment the ms counter
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Ep1in(void) interrupt 0" 
+    Interrupt Handler routine:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE EPNumberIndex;
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPNumberIndex = EP1 - 1;  //offset in array is 1 less than actual EP number
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_IRQ_CLEAR();        // Always clear INT2 flag first
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN07IRQ = bmEP1;          // ...then clear EP2IN IRQ
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DoBulkIntIn(EPNumberIndex);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Ep1out(void) interrupt 0" 
+    Interrupt Handler routine:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE EPNumberIndex;
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (OUT1CS &amp; bmBIT2){}    //wait for endpoint OUT to be free
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPNumberIndex = EP1 - 1;     //offset in array is 1 less than actual EP nubmer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;processOUTIRPs(EPNumberIndex, OUT1BUF, OUT1BC);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT1BC = 0;                  // arm the next OUT2 transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// clear the IRQ
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_IRQ_CLEAR();    
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT07IRQ = bmEP1;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Ep2in(void) interrupt 0" 
+    Interrupt Handler routine:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE EPNumberIndex;
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPNumberIndex = EP2 - 1;  //offset in array is 1 less than actual EP number
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_IRQ_CLEAR();        // Always clear INT2 flag first
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN07IRQ = bmEP2;          // ...then clear EP2IN IRQ
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DoBulkIntIn(EPNumberIndex);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Ep2out(void) interrupt 0" 
+    Interrupt Handler routine:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE EPNumberIndex;
+        <br>
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (OUT2CS &amp; bmBIT2){}      //wait for endpoint OUT to be free
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPNumberIndex = EP2 - 1;       //offset in array is 1 less than actual EP nubmer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;processOUTIRPs(EPNumberIndex, OUT2BUF, OUT2BC);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT2BC = 0;                    // arm the next OUT2 transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// clear the IRQ
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_IRQ_CLEAR();
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT07IRQ = bmEP2;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Ep3in(void) interrupt 0" 
+    Interrupt Handler routine:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE EPNumberIndex;
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPNumberIndex = EP3 - 1;  //offset in array is 1 less than actual EP number
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_IRQ_CLEAR();        // Always clear INT2 flag first
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN07IRQ = bmEP3;          // ...then clear EP2IN IRQ
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DoBulkIntIn(EPNumberIndex);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Ep3out(void) interrupt 0" 
+    Interrupt Handler routine:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE EPNumberIndex;
+        <br>
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (OUT3CS &amp; bmBIT2){}      //wait for endpoint OUT to be free
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPNumberIndex = EP3 - 1;       //offset in array is 1 less than actual EP nubmer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;processOUTIRPs(EPNumberIndex, OUT3BUF, OUT3BC);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT3BC = 0;                    // arm the next OUT2 transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// clear the IRQ
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_IRQ_CLEAR();
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT07IRQ = bmEP3;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Ep4in(void) interrupt 0" 
+    Interrupt Handler routine:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE EPNumberIndex;
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPNumberIndex = EP4 - 1;   //offset in array is 1 less than actual EP number
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_IRQ_CLEAR();         // Always clear INT2 flag first
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IN07IRQ = bmEP4;           // ...then clear EP2IN IRQ
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DoBulkIntIn(EPNumberIndex);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+
+    <li>Please add the following lines to the "void ISR_Ep4out(void) interrupt 0" 
+    Interrupt Handler routine:
+    <blockquote>
+        <font size=2>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Start javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BYTE EPNumberIndex;
+        <br>
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (OUT4CS &amp; bmBIT2){}         //wait for endpoint OUT to be free
+        <br>
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EPNumberIndex = EP4 - 1;          //offset in array is 1 less than actual EP nubmer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;processOUTIRPs(EPNumberIndex, OUT4BUF, OUT4BC);
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT4BC = 0;                       // arm the next OUT2 transfer
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// clear the IRQ
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EZUSB_IRQ_CLEAR();
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUT07IRQ = bmEP4;
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// End javax.usb code
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//-----------------------------------------------------------------------------
+        <br>
+        </font>
+    </blockquote>
+</ol>
+
+
+<br>
+<p>Author: <a href="Tckteam.html">TCK Team</a></p>
+<hr>
+<br>
+<div align="center">
+<p><a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="images.html">Building the Images</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="running.html">Running the Tests</a>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+<a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="changes.html">Change History</a>
+</div>
+
+</body>
+</html>
+

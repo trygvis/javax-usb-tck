@@ -9,6 +9,17 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------- ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040916 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ */
+
 //import java.util.*;
 import javax.usb.*;
 //import javax.usb.util.*;
@@ -89,13 +100,7 @@ public class IsochronousIOErrorConditionsTest extends TestCase
         thisTest.testClosePipePendingAction();
     }
 
-    /**
-     * Open a pipe on an inactive interface
-     */
-    public void testOpenPipeOnInactiveAlternateSetting()
-    {
-        thisTest.testOpenPipeOnInactiveAlternateSetting();
-    }
+    // Moved method testOpenPipeOnInactiveAlternateSetting into the optional setInterface tests  @P1D7
 
     /**
      * Open a pipe on an unclaimed interface

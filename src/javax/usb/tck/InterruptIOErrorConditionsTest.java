@@ -9,6 +9,15 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ */
+
 //import java.util.*;
 import javax.usb.*;
 //import javax.usb.util.*;
@@ -89,13 +98,7 @@ public class InterruptIOErrorConditionsTest extends TestCase
         thisTest.testClosePipePendingAction();
     }
 
-    /**
-     * Open a pipe on an inactive interface
-     */
-    public void testOpenPipeOnInactiveAlternateSetting()
-    {
-        thisTest.testOpenPipeOnInactiveAlternateSetting();
-    }
+    // Moved method testOpenPipeOnInactiveAlternateSetting into the optional setInterface tests  @P1D7
 
     /**
      * Open a pipe on an unclaimed interface

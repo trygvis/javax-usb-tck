@@ -9,6 +9,18 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ * $P2           tck.rel1 040916 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ */
+
 import java.util.*;
 
 import junit.framework.*;
@@ -69,26 +81,38 @@ public class ControlIOTest extends TestCase
         try
         {
             if ( usbCtrlIOPipe.isOpen() )
+            {
                 usbCtrlIOPipe.abortAllSubmissions();
-            usbCtrlIOPipe.close();
-        }
-        catch ( UsbNotOpenException uNOE )
+                usbCtrlIOPipe.close();
+            }
+        } catch ( UsbNotOpenException uNOE )
         {
+            fail("ControlIO Pipe reports is opened but throws UsbNotOpenException when " +
+                 "close or abortAllSubmissions method called: " + uNOE.getMessage());
+        } catch ( UsbNotActiveException uNAE ) {
+        	fail("ControlIO Pipe reports is opened but throws UsbNotActiveExceptio when " +
+        	     "close or abortAllSubmissions method called: " + uNAE.getMessage());
+        } catch ( UsbDisconnectedException uDE ) {
+        	fail("ControlIO Pipe reports is opened but throws UsbDisconnectedException when " +
+        		"close or abortAllSubmissions method called: " + uDE.getMessage());
+        } catch ( UsbException uE ) {
+        	fail("The close method was unable to close the ControlIO Pipe: " + uE.getMessage());
         }
         try
         {
             if ( usbCtrlIOInterface.isClaimed() )
                 usbCtrlIOInterface.release();
-        }
-        catch ( UsbClaimException uCE )
+        } catch ( UsbClaimException uCE )
         {
-        }
-        catch ( UsbPolicyDenied uPD )
+            fail("UsbInterface reports interface is claimed, release method throws" +
+                 "UsbClaimException (device not claimed): " + uCE.getMessage());
+        } catch ( UsbException uE )
         {
-        }
-        catch ( UsbNotActiveException uNAE )
-        {
-        }
+            fail("release method unable to release UsbInterface: " + uE.getMessage());
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
     }
 
     /**
@@ -119,36 +143,12 @@ public class ControlIOTest extends TestCase
         usbCtrlIOInterface = usbCtrlIOEndpoint.getUsbInterface();
         usbCtrlIOInterfaceDesc = usbCtrlIOInterface.getUsbInterfaceDescriptor();
 
-        if ( usbCtrlIOInterface.isActive() != true )
-        {
+                                                                                              // @P2D23
             UsbConfiguration usbCtrlIOConfig;
             UsbConfigurationDescriptor usbCtrlIOConfigDesc;
 
             usbCtrlIOConfig = usbCtrlIOInterface.getUsbConfiguration();
             usbCtrlIOConfigDesc = usbCtrlIOConfig.getUsbConfigurationDescriptor();
-            try
-            {
-                StandardRequest.setConfiguration(usbCtrlIODev, usbCtrlIOConfigDesc.bConfigurationValue());
-            }
-            catch ( UsbException uE )
-            {
-                fail("Unable to set the configuration with the control endpoint to the active configuration");
-            }
-        }
-
-        if ( usbCtrlIOInterface.getActiveSettingNumber() != usbCtrlIOInterfaceDesc.bAlternateSetting() )
-        {
-            try
-            {
-                StandardRequest.setInterface(usbCtrlIODev,
-                                             usbCtrlIOInterfaceDesc.bInterfaceNumber(),
-                                             usbCtrlIOInterfaceDesc.bAlternateSetting());
-            }
-            catch ( UsbException uE )
-            {
-                fail("Unable to set the active setting on the interface to the active setting containing the control endpoint");
-            }
-        }
 
         assertTrue("The configuration, interface & alternate setting for the Control Enpoint isn't active",
                    usbCtrlIOInterface.isActive());
@@ -158,16 +158,16 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOInterface.claim();
-        }
-        catch ( UsbNotActiveException uNAE )
+        } catch ( UsbNotActiveException uNAE )
         {
             fail("The interface should be active when claim is called");
-        }
-        catch ( UsbClaimException uCE )
+        } catch ( UsbClaimException uCE )
         {
             fail("The interface should not be claimed when claim is called");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        } catch ( UsbException uE )                                                           // @P1C
         {
             fail("The interface was unable to be claimed");
         }
@@ -183,23 +183,19 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOPipe.open();
-        }
-        catch ( UsbPolicyDenied uPD )
-        {
-            fail ("The UsbPolicy doesn't allow for the pipe to be opened");
-        }
-        catch ( UsbNotActiveException uNAE )
+        } catch ( UsbNotActiveException uNAE )
         {
             fail("The pipe's configuration and interface should be active when open is called");
-        }
-        catch ( UsbNotClaimedException uNCE )
+        } catch ( UsbNotClaimedException uNCE )
         {
             fail("The pipe's interface should be claimed when open is called");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("The interface was unable to be opened");
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         assertTrue("The Control I/O Pipe should be open after open is called",
                    usbCtrlIOPipe.isOpen());
@@ -236,15 +232,16 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOPipe.close();
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("The Control I/O Pipe couldn't be closed");
-        }
-        catch ( UsbNotOpenException uNOE )
+        } catch ( UsbNotOpenException uNOE )
         {
             fail("The Control I/O Pipe threw a UsbNotOpenException on closing an open pipe");
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         assertFalse("UsbPipe.isOpen() should be false after UsbPipe.close() is called",
                     usbCtrlIOPipe.isOpen());
@@ -255,23 +252,19 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOInterface.release();
-        }
-        catch ( UsbPolicyDenied uPD )
-        {
-            fail("The UsbInterfacePolicy shouldn't prevent the release");
-        }
-        catch ( UsbClaimException uCE )
+        } catch ( UsbClaimException uCE )
         {
             fail("A claimed interface shouldn't throw the UsbClaimException");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("The interface could not be released.");
-        }
-        catch ( UsbNotActiveException uNAE )
+        } catch ( UsbNotActiveException uNAE )
         {
             fail("An active interface setting shouldn't throw the UsbNotActiveException");
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         assertFalse("The Control I/O Interface shouldn't be claimed after UsbInterface.release() is called",
                     usbCtrlIOInterface.isClaimed());
@@ -295,8 +288,7 @@ public class ControlIOTest extends TestCase
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -327,16 +319,13 @@ public class ControlIOTest extends TestCase
                 usbCtrlIOPipe.syncSubmit(usbCtrlIOIrp);
                 assertFalse("The usbCtrlIOIrp.isUsbException should be set to FALSE",
                             usbCtrlIOIrp.isUsbException());
-            }
-            catch ( IllegalArgumentException uIAE )
+            } catch ( IllegalArgumentException uIAE )
             {
                 fail("The buffer is set to NULL for OUT syncSubmit #" + (i+1));
-            }
-            catch ( UsbNotOpenException uNOE )
+            } catch ( UsbNotOpenException uNOE )
             {
                 fail("The pipe is not open for OUT syncSubmit #" + (i+1));
-            }
-            catch ( UsbException uE )
+            } catch ( UsbException uE )
             {
                 assertNotNull("The OUT syncSubmit UsbException should not be null",
                               uE);
@@ -344,7 +333,10 @@ public class ControlIOTest extends TestCase
                            usbCtrlIOIrp.isUsbException());
                 assertEquals("The UsbException for the Irp should match the exception caught",
                              usbCtrlIOIrp.getUsbException(), uE);
-            }
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
 
             if ( !usbCtrlIOIrp.isComplete() )
             {
@@ -390,8 +382,7 @@ public class ControlIOTest extends TestCase
                              usbCtrlIOIrp.getLength(), lastUsbPipeDE.getUsbIrp().getLength());
                 assertEquals("The OUT data event UsbPipe doesn't match the one the Irp was submitted on",
                              usbCtrlIOPipe, lastUsbPipeDE.getUsbPipe());
-            }
-            else
+            } else
             {
                 UsbPipeErrorEvent lastUsbPipeEE =
                     (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
@@ -414,8 +405,7 @@ public class ControlIOTest extends TestCase
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -438,8 +428,7 @@ public class ControlIOTest extends TestCase
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -451,9 +440,9 @@ public class ControlIOTest extends TestCase
                 UsbConst.ENDPOINT_DIRECTION_IN |
                 UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
             byte bRequest = UsbConst.REQUEST_GET_DESCRIPTOR;
-            short wValue =
+            short wValue = 
                 (short) ((UsbConst.DESCRIPTOR_TYPE_STRING * (short) 0x0100) |
-                         0x0001);
+                0x0001);
             short wIndex = (short) 0x0000;
             byte buffer[] = new byte[64];
             int usbCtrlIOIrpOffset;
@@ -475,16 +464,13 @@ public class ControlIOTest extends TestCase
                 usbCtrlIOPipe.syncSubmit(usbCtrlIOIrp);
                 assertFalse("The usbCtrlIOIrp.isUsbException should be set to FALSE",
                             usbCtrlIOIrp.isUsbException());
-            }
-            catch ( IllegalArgumentException uIAE )
+            } catch ( IllegalArgumentException uIAE )
             {
                 fail("The buffer is set to NULL for IN syncSubmit #" + (i+1));
-            }
-            catch ( UsbNotOpenException uNOE )
+            } catch ( UsbNotOpenException uNOE )
             {
                 fail("The pipe is not open for IN syncSubmit #" + (i+1));
-            }
-            catch ( UsbException uE )
+            } catch ( UsbException uE )
             {
                 assertNotNull("The IN syncSubmit UsbException should not be null",
                               uE);
@@ -492,7 +478,10 @@ public class ControlIOTest extends TestCase
                            usbCtrlIOIrp.isUsbException());
                 assertEquals("The UsbException for the Irp should match the exception caught",
                              usbCtrlIOIrp.getUsbException(), uE);
-            }
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
 
             if ( !usbCtrlIOIrp.isComplete() )
             {
@@ -538,8 +527,7 @@ public class ControlIOTest extends TestCase
                              usbCtrlIOIrp.getLength(), lastUsbPipeDE.getUsbIrp().getLength());
                 assertEquals("The IN data event UsbPipe doesn't match the UsbPipe submitted on",
                              usbCtrlIOPipe, lastUsbPipeDE.getUsbPipe());
-            }
-            else
+            } else
             {
                 UsbPipeErrorEvent lastUsbPipeEE =
                     (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
@@ -562,8 +550,7 @@ public class ControlIOTest extends TestCase
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -598,8 +585,7 @@ public class ControlIOTest extends TestCase
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -622,25 +608,22 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOPipe.syncSubmit(usbCtrlIOIrpList);
-        }
-        catch ( IllegalArgumentException uIAE )
+        } catch ( IllegalArgumentException uIAE )
         {
             fail("The buffer is set to NULL for OUT syncSubmit");
-        }
-        catch ( UsbNotOpenException uNOE )
+        } catch ( UsbNotOpenException uNOE )
         {
             fail("The pipe is not open for OUT syncSubmit");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             exceptionReceived = uE;
             assertNotNull("The OUT syncSubmit UsbException should not be null",
                           uE);
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
-        /**
-         * TODO: Get resolution to javax.usb defect 861246 change error event handling if required
-         */
         for ( int i = 0; i < 4000; i++ )
         {
             Thread.sleep(5);
@@ -666,14 +649,12 @@ public class ControlIOTest extends TestCase
                 {
                     assertFalse("The usbCtrlIOIrp.isUsbException should be set to FALSE",
                                 usbCtrlIOIrp.isUsbException());
-                }
-                else
+                } else
                 {
                     assertTrue("The usbCtrlIOIrp.isUsbException should be set to TRUE",
                                usbCtrlIOIrp.isUsbException());
                 }
-            }
-            else
+            } else
             {
                 assertFalse("OUT Irp #" + (i+1) + " in List: The UsbControlIrp should not be complete since it wasn't submitted",
                             usbCtrlIOIrp.isComplete());
@@ -707,14 +688,11 @@ public class ControlIOTest extends TestCase
                              usbCtrlIOIrp.getLength(), lastUsbPipeDE.getUsbIrp().getLength());
                 assertEquals("The OUT data event UsbPipe doesn't match the UsbPipe submitted on",
                              usbCtrlIOPipe, lastUsbPipeDE.getUsbPipe());
-            }
-            else if ( usbCtrlIOIrp.isUsbException() )
+            } else if ( usbCtrlIOIrp.isUsbException() )
             {
                 UsbPipeErrorEvent lastUsbPipeEE =
                     (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
 
-                assertEquals("The UsbException for the Irp should match the exception caught",
-                             usbCtrlIOIrp.getUsbException(), exceptionReceived);
                 assertNotNull("No USB Exception was embedded in the OUT Error Event",
                               lastUsbPipeEE.getUsbException());
                 assertEquals("The UsbException for the Irp should match the error event exception",
@@ -727,8 +705,7 @@ public class ControlIOTest extends TestCase
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -763,8 +740,7 @@ public class ControlIOTest extends TestCase
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -773,7 +749,7 @@ public class ControlIOTest extends TestCase
         {
             short wValue =
                 (short) ((UsbConst.DESCRIPTOR_TYPE_STRING * (short) 0x0100) |
-                         0x0001);
+                0x0001);
             short wIndex = (short) 0x0000;
 
             usbCtrlIOIrp = usbCtrlIOPipe.createUsbControlIrp(bmRequestType, bRequest, wValue, wIndex);
@@ -792,25 +768,22 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOPipe.syncSubmit(usbCtrlIOIrpList);
-        }
-        catch ( IllegalArgumentException uIAE )
+        } catch ( IllegalArgumentException uIAE )
         {
             fail("The buffer is set to NULL for IN syncSubmit");
-        }
-        catch ( UsbNotOpenException uNOE )
+        } catch ( UsbNotOpenException uNOE )
         {
             fail("The pipe is not open for IN syncSubmit");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             exceptionReceived = uE;
             assertNotNull("The IN syncSubmit UsbException should not be null",
                           uE);
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
-        /**
-         * TODO: Get resolution to javax.usb defect 861246 change error event handling if required
-         */
         for ( int i = 0; i < 4000; i++ )
         {
             Thread.sleep(5);
@@ -836,14 +809,12 @@ public class ControlIOTest extends TestCase
                 {
                     assertFalse("The usbCtrlIOIrp.isUsbException should be set to FALSE",
                                 usbCtrlIOIrp.isUsbException());
-                }
-                else
+                } else
                 {
                     assertTrue("The usbCtrlIOIrp.isUsbException should be set to TRUE",
                                usbCtrlIOIrp.isUsbException());
                 }
-            }
-            else
+            } else
             {
                 assertFalse("OUT Irp #" + (i+1) + " in List: The UsbControlIrp should not be complete since it wasn't submitted",
                             usbCtrlIOIrp.isComplete());
@@ -877,14 +848,11 @@ public class ControlIOTest extends TestCase
                              usbCtrlIOIrp.getLength(), lastUsbPipeDE.getUsbIrp().getLength());
                 assertEquals("The IN data event UsbPipe doesn't match the UsbPipe submitted on",
                              usbCtrlIOPipe, lastUsbPipeDE.getUsbPipe());
-            }
-            else if ( usbCtrlIOIrp.isUsbException() )
+            } else if ( usbCtrlIOIrp.isUsbException() )
             {
                 UsbPipeErrorEvent lastUsbPipeEE =
                     (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
 
-                assertEquals("The UsbException for the Irp should match the exception caught",
-                             usbCtrlIOIrp.getUsbException(), exceptionReceived);
                 assertNotNull("No USB Exception was embedded in the OUT Error Event",
                               lastUsbPipeEE.getUsbException());
                 assertEquals("The UsbException for the Irp should match the error event exception",
@@ -897,8 +865,7 @@ public class ControlIOTest extends TestCase
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -922,8 +889,7 @@ public class ControlIOTest extends TestCase
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -954,20 +920,20 @@ public class ControlIOTest extends TestCase
             try
             {
                 usbCtrlIOPipe.asyncSubmit(usbCtrlIOIrp);
-            }
-            catch ( IllegalArgumentException uIAE )
+            } catch ( IllegalArgumentException uIAE )
             {
                 fail("The buffer is set to NULL for OUT asyncSubmit #" + (i+1));
-            }
-            catch ( UsbNotOpenException uNOE )
+            } catch ( UsbNotOpenException uNOE )
             {
                 fail("The pipe is not open for OUT asyncSubmit #" + (i+1));
-            }
-            catch ( UsbException uE )
+            } catch ( UsbException uE )
             {
                 assertNotNull("The OUT asyncSubmit UsbException should not be null",
                               uE);
-            }
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
 
             usbCtrlIOIrp.waitUntilComplete(5000);
             assertTrue("OUT Irp #" + (i+1) + ": The UsbCotrolIrp should be complete after waitUntilComplete",
@@ -982,8 +948,7 @@ public class ControlIOTest extends TestCase
                     {
                         assertFalse("The usbCtrlIOIrp.isUsbException should be set to FALSE",
                                     usbCtrlIOIrp.isUsbException());
-                    }
-                    else
+                    } else
                     {
                         assertTrue("The usbCtrlIOIrp.isUsbException should be set to TRUE",
                                    usbCtrlIOIrp.isUsbException());
@@ -1022,8 +987,7 @@ public class ControlIOTest extends TestCase
                              usbCtrlIOIrp.getLength(), lastUsbPipeDE.getUsbIrp().getLength());
                 assertEquals("The OUT data event UsbPipe doesn't match the UsbPipe submitted on",
                              usbCtrlIOPipe, lastUsbPipeDE.getUsbPipe());
-            }
-            else
+            } else
             {
                 UsbPipeErrorEvent lastUsbPipeEE =
                     (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
@@ -1046,8 +1010,7 @@ public class ControlIOTest extends TestCase
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -1070,8 +1033,7 @@ public class ControlIOTest extends TestCase
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -1085,7 +1047,7 @@ public class ControlIOTest extends TestCase
             byte bRequest = UsbConst.REQUEST_GET_DESCRIPTOR;
             short wValue =
                 (short) ((UsbConst.DESCRIPTOR_TYPE_STRING * (short) 0x0100) |
-                         0x0001);
+                0x0001);
             short wIndex = (short) 0x0000;
             byte buffer[] = new byte[64];
             int usbCtrlIOIrpOffset;
@@ -1107,20 +1069,20 @@ public class ControlIOTest extends TestCase
             try
             {
                 usbCtrlIOPipe.asyncSubmit(usbCtrlIOIrp);
-            }
-            catch ( IllegalArgumentException uIAE )
+            } catch ( IllegalArgumentException uIAE )
             {
                 fail("The buffer is set to NULL for IN asyncSubmit #" + (i+1));
-            }
-            catch ( UsbNotOpenException uNOE )
+            } catch ( UsbNotOpenException uNOE )
             {
                 fail("The pipe is not open for IN asyncSubmit #" + (i+1));
-            }
-            catch ( UsbException uE )
+            } catch ( UsbException uE )
             {
                 assertNotNull("The IN asyncSubmit UsbException should not be null",
                               uE);
-            }
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
 
             usbCtrlIOIrp.waitUntilComplete(5000);
             assertTrue("IN Irp #" + (i+1) + ": The UsbCotrolIrp should be complete after waitUntilComplete",
@@ -1135,8 +1097,7 @@ public class ControlIOTest extends TestCase
                     {
                         assertFalse("The usbCtrlIOIrp.isUsbException should be set to FALSE",
                                     usbCtrlIOIrp.isUsbException());
-                    }
-                    else
+                    } else
                     {
                         assertTrue("The usbCtrlIOIrp.isUsbException should be set to TRUE",
                                    usbCtrlIOIrp.isUsbException());
@@ -1175,8 +1136,7 @@ public class ControlIOTest extends TestCase
                              usbCtrlIOIrp.getLength(), lastUsbPipeDE.getUsbIrp().getLength());
                 assertEquals("The IN data event UsbPipe doesn't match the UsbPipe submitted on",
                              usbCtrlIOPipe, lastUsbPipeDE.getUsbPipe());
-            }
-            else
+            } else
             {
                 UsbPipeErrorEvent lastUsbPipeEE =
                     (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
@@ -1199,8 +1159,7 @@ public class ControlIOTest extends TestCase
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -1234,8 +1193,7 @@ public class ControlIOTest extends TestCase
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -1258,20 +1216,20 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOPipe.asyncSubmit(usbCtrlIOIrpList);
-        }
-        catch ( IllegalArgumentException uIAE )
+        } catch ( IllegalArgumentException uIAE )
         {
             fail("The buffer is set to NULL for OUT asyncSubmit");
-        }
-        catch ( UsbNotOpenException uNOE )
+        } catch ( UsbNotOpenException uNOE )
         {
             fail("The pipe is not open for OUT asyncSubmit");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             assertNotNull("The OUT asyncSubmit UsbException should not be null",
                           uE);
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         for ( int i = 0; i < 10; i++ )
         {
@@ -1329,8 +1287,7 @@ public class ControlIOTest extends TestCase
                                  usbCtrlIOIrp.getLength(), lastUsbPipeDE.getUsbIrp().getLength());
                     assertEquals("The OUT data event UsbPipe doesn't match the UsbPipe submitted on",
                                  usbCtrlIOPipe, lastUsbPipeDE.getUsbPipe());
-                }
-                else
+                } else
                 {
                     UsbPipeErrorEvent lastUsbPipeEE = (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
 
@@ -1343,8 +1300,7 @@ public class ControlIOTest extends TestCase
                     assertEquals("The OUT error event UsbPipe doesn't match the UsbPipe submitted on",
                                  usbCtrlIOPipe, lastUsbPipeEE.getUsbPipe());
                 }
-            }
-            else
+            } else
             {
                 UsbPipeErrorEvent lastUsbPipeEE =
                     (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
@@ -1363,8 +1319,7 @@ public class ControlIOTest extends TestCase
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -1389,17 +1344,16 @@ public class ControlIOTest extends TestCase
         int usbCtrlIOIrpOffset[] = new int[10];
         int usbCtrlIOIrpLength[] = new int[10];
         byte bmRequestType =
-            UsbConst.REQUESTTYPE_TYPE_STANDARD |
-            UsbConst.ENDPOINT_DIRECTION_IN |
-            UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
+        UsbConst.REQUESTTYPE_TYPE_STANDARD |
+        UsbConst.ENDPOINT_DIRECTION_IN |
+        UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
         byte bRequest = UsbConst.REQUEST_GET_DESCRIPTOR;
         byte buffer[] = new byte[640];
 
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -1408,7 +1362,7 @@ public class ControlIOTest extends TestCase
         {
             short wValue =
                 (short) ((UsbConst.DESCRIPTOR_TYPE_STRING * (short) 0x0100) |
-                         0x0001);
+                0x0001);
             short wIndex = (short) 0x0000;
 
             usbCtrlIOIrp = usbCtrlIOPipe.createUsbControlIrp(bmRequestType, bRequest, wValue, wIndex);
@@ -1427,20 +1381,20 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOPipe.asyncSubmit(usbCtrlIOIrpList);
-        }
-        catch ( IllegalArgumentException uIAE )
+        } catch ( IllegalArgumentException uIAE )
         {
             fail("The buffer is set to NULL for IN asyncSubmit");
-        }
-        catch ( UsbNotOpenException uNOE )
+        } catch ( UsbNotOpenException uNOE )
         {
             fail("The pipe is not open for IN asyncSubmit");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             assertNotNull("The IN asyncSubmit UsbException should not be null",
                           uE);
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         for ( int i = 0; i < 10; i++ )
         {
@@ -1498,8 +1452,7 @@ public class ControlIOTest extends TestCase
                                  usbCtrlIOIrp.getLength(), lastUsbPipeDE.getUsbIrp().getLength());
                     assertEquals("The IN data event UsbPipe doesn't match the UsbPipe submitted on",
                                  usbCtrlIOPipe, lastUsbPipeDE.getUsbPipe());
-                }
-                else
+                } else
                 {
                     UsbPipeErrorEvent lastUsbPipeEE = (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
 
@@ -1512,8 +1465,7 @@ public class ControlIOTest extends TestCase
                     assertEquals("The IN error event UsbPipe doesn't match the UsbPipe submitted on",
                                  usbCtrlIOPipe, lastUsbPipeEE.getUsbPipe());
                 }
-            }
-            else
+            } else
             {
                 UsbPipeErrorEvent lastUsbPipeEE =
                     (UsbPipeErrorEvent) LastUsbPipeErrorEvent.remove(0);
@@ -1532,8 +1484,7 @@ public class ControlIOTest extends TestCase
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -1548,8 +1499,7 @@ public class ControlIOTest extends TestCase
         try
         {
             openControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening the Control I/O Pipe");
         }
@@ -1558,16 +1508,17 @@ public class ControlIOTest extends TestCase
         try
         {
             usbCtrlIOPipe.abortAllSubmissions();
-        }
-        catch ( UsbNotOpenException uNOE )
+        } catch ( UsbNotOpenException uNOE )
         {
             fail("AbortAllSubmissions threw a UsbNotOpenException on an open pipe");
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
         try
         {
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while closing the Control I/O Pipe");
         }
@@ -1586,8 +1537,7 @@ public class ControlIOTest extends TestCase
         {
             openControlIOPipe();
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening or closing the Control I/O Pipe");
         }
@@ -1597,8 +1547,7 @@ public class ControlIOTest extends TestCase
         {
             usbCtrlIOPipe.abortAllSubmissions();
             fail("abortAllSubmissions didn't throw a UsbNotOpenException on a closed pipe");
-        }
-        catch ( UsbNotOpenException uNOE )
+        } catch ( UsbNotOpenException uNOE )
         {
             assertNotNull("The UsbNotOpenException shouldn't be null",
                           uNOE);
@@ -1617,8 +1566,7 @@ public class ControlIOTest extends TestCase
         {
             openControlIOPipe();
             closeControlIOPipe();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("There was an exception while opening or closing the Control I/O Pipe");
         }
@@ -1642,17 +1590,17 @@ public class ControlIOTest extends TestCase
             usbCtrlIOIrp.setData(buffer);
             usbCtrlIOPipe.syncSubmit(usbCtrlIOIrp);
             fail("syncSubmit didn't throw a UsbNotOpenException on a closed pipe");
-        }
-        catch ( UsbNotOpenException uNOE )
+        } catch ( UsbNotOpenException uNOE )
         {
             assertNotNull("The UsbNotOpenException shouldn't be null",
                           uNOE);
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail("UsbNotOpenException expected.  Submitting on a closed pipe should not throw a generic UsbException" + uE);
-        }
-        catch ( java.lang.IllegalArgumentException iAE )
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        } catch ( java.lang.IllegalArgumentException iAE )                                    // @P1C
         {
             fail("Submit should not throw IllegalArguementException w/valid Irp is used");
         }

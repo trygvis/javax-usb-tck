@@ -1,37 +1,30 @@
-/**
-* Copyright (c) 2004, International Business Machines Corporation.
-* All Rights Reserved.
-*
-* This software is provided and licensed under the terms and conditions
-* of the Common Public License:
-* http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
-*/
-
 package javax.usb.tck;
+
+/**
+ * Copyright (c) 2004, International Business Machines Corporation.
+ * All Rights Reserved.
+ *
+ * This software is provided and licensed under the terms and conditions
+ * of the Common Public License:
+ * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
+ */
+
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ * $P2           tck.rel1 040916 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ */
 
 import java.util.List;
 
-import javax.usb.UsbClaimException;
-import javax.usb.UsbConst;
-import javax.usb.UsbControlIrp;
-import javax.usb.UsbDevice;
-import javax.usb.UsbEndpoint;
-import javax.usb.UsbException;
-import javax.usb.UsbHostManager;
-import javax.usb.UsbInterface;
-import javax.usb.UsbNotActiveException;
-import javax.usb.UsbPipe;
-import javax.usb.UsbServices;
-import javax.usb.UsbIrp;
-import javax.usb.event.UsbDeviceDataEvent;
-import javax.usb.event.UsbDeviceErrorEvent;
-import javax.usb.event.UsbDeviceEvent;
-import javax.usb.event.UsbDeviceListener;
-import javax.usb.event.UsbPipeDataEvent;
-import javax.usb.event.UsbPipeErrorEvent;
-import javax.usb.event.UsbPipeListener;
-import javax.usb.event.UsbServicesEvent;
-import javax.usb.event.UsbServicesListener;
+import javax.usb.*;
+import javax.usb.event.*;
 import javax.usb.util.StandardRequest;
 
 import junit.framework.TestCase;
@@ -64,12 +57,10 @@ public class HotPlugTest extends TestCase
         try
         {
             usbServices = UsbHostManager.getUsbServices();
-        }
-        catch ( java.lang.SecurityException se )
+        } catch ( java.lang.SecurityException se )
         {
             fail("SecurityException was not expected: " + se);
-        }
-        catch ( UsbException ue )
+        } catch ( UsbException ue )
         {
             fail("UsbException was not expected: " + ue);
         }
@@ -257,8 +248,7 @@ public class HotPlugTest extends TestCase
         try
         {
             submitRenumerateIrp();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             e.printStackTrace();
             fail("Resetting the board should not issue any exceptions.");
@@ -281,14 +271,12 @@ public class HotPlugTest extends TestCase
             {
                 submitRenumerateIrp();
                 fail("UsbException expected");
-            }
-            catch ( UsbException e )
+            } catch ( UsbException e )
             {
                 isOK = true;
                 if ( debug )
                     System.out.println("UsbException thrown" + e);
-            }
-            catch ( Exception e )
+            } catch ( Exception e )
             {
                 e.printStackTrace();
                 fail("An Exception other than UsbException was detected.");
@@ -301,22 +289,19 @@ public class HotPlugTest extends TestCase
             {
                 submitBadIrp();
                 fail("IllegalArgumentException was expected.");
-            }
-            catch ( IllegalArgumentException e )
+            } catch ( IllegalArgumentException e )
             {
                 // System.out.println("good");
                 isOK = true;
                 if ( debug )
                     System.out.println("IllegalArgumentException thrown");
-            }
-            catch ( Exception e )
+            } catch ( Exception e )
             {
                 e.printStackTrace();
                 fail("Exception other than IllegalArgumentException was detected");
             }
 
-        }
-        else
+        } else
         {
             fail("Can't proceed because the service got up and running quickly.");
         }
@@ -332,13 +317,11 @@ public class HotPlugTest extends TestCase
         {
             waitForServiceAttachedEvent(20000);
             isOK = true;
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             e.printStackTrace();
             fail("Timed out before all events were seen.");
-        }
-        finally
+        } finally
         {
             if ( !isOK )
                 fail("UsbDevice was not detected as going online");
@@ -357,8 +340,7 @@ public class HotPlugTest extends TestCase
         try
         {
             submitRenumerateIrp();
-        }
-        catch ( UsbException e )
+        } catch ( UsbException e )
         {
             e.printStackTrace();
             fail("Resetting the board should not issue any exceptions.");
@@ -391,8 +373,7 @@ public class HotPlugTest extends TestCase
             // make sure board is up before leaving.
             waitForServiceAttachedEvent(5000);
 
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             e.printStackTrace();
             fail("Timed out before all events were seen.");
@@ -454,19 +435,17 @@ public class HotPlugTest extends TestCase
                         "The service attached once during the run",
                         numServicesAttachEvents,
                         1);
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             e.printStackTrace();
             fail("Sleep was interrupted");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             /* The exception should indicate the reason for the failure.
              * For this example, we'll just stop trying.
              */
             fail("DCP submission failed.  " + uE.toString());
-        }
+	}
     }
 
     /**
@@ -489,26 +468,23 @@ public class HotPlugTest extends TestCase
         try
         {
             theBoard.sendData();
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             e.printStackTrace();
             fail("Exception not expected.");
         }
         // tested: while online, data can be sent without error...
 
-        // While transferring data through input and output endpoints 
-        // (loop bulk data), unplug the device.  
+        // While transferring data through input and output endpoints
+        // (loop bulk data), unplug the device.
         // (Vendor request to Cypress Board to renumerate will simulate unplug.)
         try
         {
             theBoard.testAsyncInFailure();
-        }
-        catch ( InterruptedException ie )
+        } catch ( InterruptedException ie )
         {
             fail("Timed out while waiting for the device detach event.");
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             e.printStackTrace();
             fail("Resetting the board should not issue any exceptions.");
@@ -518,8 +494,7 @@ public class HotPlugTest extends TestCase
         try
         {
             waitForServiceAttachedEvent(20000);
-        }
-        catch ( InterruptedException ie )
+        } catch ( InterruptedException ie )
         {
             fail("Timed out while waiting for the device detach event.");
         }
@@ -533,19 +508,17 @@ public class HotPlugTest extends TestCase
             theBoard = new Board(usbDevice);
             theBoard.sendData();
             theBoard.tearDown();
-        }
-        catch ( InterruptedException ie )
+        } catch ( InterruptedException ie )
         {
             fail("Timed out waiting for service attach event.");
-        }
-        catch ( Exception e )
+        } catch ( Exception e )
         {
             fail("Exception not expected.");
         }
         // tested: when online again, send data without error
     }
 
-    /** 
+    /**
      * Tell the Cypress board to initiate its reset and binary upload method.
      * in order to simulate human involved device detach and attach action.
      * Returns successfully once device service is attached; otherwise
@@ -570,13 +543,11 @@ public class HotPlugTest extends TestCase
 
             waitForServiceAttachedEvent(10000);
 
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             e.printStackTrace();
             fail("Sleep was interrupted");
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             /* The exception should indicate the reason for the failure.
              * For this example, we'll just stop trying.
@@ -586,7 +557,7 @@ public class HotPlugTest extends TestCase
     }
 
     /**
-     * Generates the Renumerate command for the cypress board as a UsbControlIrp 
+     * Generates the Renumerate command for the cypress board as a UsbControlIrp
      * @return the UsbControlIrp ready for use
      */
     private UsbControlIrp getRenumerateIrp()
@@ -602,10 +573,10 @@ public class HotPlugTest extends TestCase
         // An IRP
         UsbControlIrp usbControlIrp =
             usbDevice.createUsbControlIrp(
-                                         sentbmRequestType,
-                                         VENDOR_REQUEST_RENUMERATE,
-                                         VENDOR_REQUEST_DATA_OUT,
-                                         sentwIndex);
+                                     sentbmRequestType,
+                                     VENDOR_REQUEST_RENUMERATE,
+                                     VENDOR_REQUEST_DATA_OUT,
+                                     sentwIndex);
 
         //set variable parts of Irp
         byte[] sentData = new byte[0];
@@ -640,8 +611,7 @@ public class HotPlugTest extends TestCase
 
             usbDevice.syncSubmit(usbControlIrp);
             numSubmits++;
-        }
-        catch ( IllegalArgumentException e )
+        } catch ( IllegalArgumentException e )
         {
             e.printStackTrace();
             fail("IllegalArgumentException was not expected.");
@@ -664,8 +634,10 @@ public class HotPlugTest extends TestCase
         try
         {
             usbDevice.syncSubmit(usbControlIrp);
-        }
-        catch ( UsbException e )
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        } catch ( UsbException e )                                                            // @P1A
         {
             e.printStackTrace();
             fail("UsbException not expected.");
@@ -794,8 +766,7 @@ public class HotPlugTest extends TestCase
             {
                 if ( hasRenumerated && hasSubmittedAsyncIn ) // ok
                 {
-                }
-                else //err
+                } else //err
                 {
                     fail ("No in pipe errors are expected at this point.");
                 }
@@ -809,7 +780,7 @@ public class HotPlugTest extends TestCase
             }
             public void errorEventOccurred(UsbPipeErrorEvent upeE)
             {
-                fail("No out pipe errors should occur during this test.");              
+                fail("No out pipe errors should occur during this test.");
             }
         };
 
@@ -835,41 +806,37 @@ public class HotPlugTest extends TestCase
                 // set the endpoints
                 List endpoints = null;
 
-                /** 
+                /**
                  *  select alternate setting for the programmable board (AS0 or AS1)
                  * @param usbDevice The UsbDevice obj
                  */
                 if ( usbDevice.isConfigured() )
                 {
-                    StandardRequest.setInterface(
-                                                usbDevice,
-                                                (short) 0,
-                                                (short) 1);
+                    iface = usbDevice.getUsbConfiguration((byte) 1).getUsbInterface((byte) 0);
 
-                    iface =
-                        usbDevice.getUsbConfiguration(
-                                                     (byte) 1).getUsbInterface(
-                                                                              (byte) 0);
+                    iface.claim();
+
+                                                                                              // @P2D4
+                    iface = iface.getActiveSetting();
 
                     if ( debug )
                         System.out.println("Select Alternate Setting 1");
 
-                    iface.claim();
                     endpoints = iface.getUsbEndpoints();
 
                     UsbEndpoint inEndpoint8 =
                         findEndpoint(
-                                    endpoints,
-                                    UsbConst.REQUESTTYPE_DIRECTION_IN,
-                                    UsbConst.ENDPOINT_TYPE_BULK,
-                                    8);
+                                endpoints,
+                                UsbConst.REQUESTTYPE_DIRECTION_IN,
+                                UsbConst.ENDPOINT_TYPE_BULK,
+                                8);
 
                     UsbEndpoint outEndpoint8 =
                         findEndpoint(
-                                    endpoints,
-                                    UsbConst.REQUESTTYPE_DIRECTION_OUT,
-                                    UsbConst.ENDPOINT_TYPE_BULK,
-                                    8);
+                                endpoints,
+                                UsbConst.REQUESTTYPE_DIRECTION_OUT,
+                                UsbConst.ENDPOINT_TYPE_BULK,
+                                8);
 
                     inPipe = inEndpoint8.getUsbPipe();
                     outPipe = outEndpoint8.getUsbPipe();
@@ -877,26 +844,25 @@ public class HotPlugTest extends TestCase
                     outPipe.addUsbPipeListener(outPipeListener);
                     inPipe.open();
                     outPipe.open();
-                }
-                else
+                } else
                 {
                     fail("device is not configured!");
                 }
 
-            }
-            catch ( UsbClaimException uce )
+            } catch ( UsbClaimException uce )
             {
                 fail("UsbClaimException: " + uce);
-            }
-            catch ( UsbException ue )
+            } catch ( UsbDisconnectedException uDE )                                          // @P1A
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            } catch ( UsbException ue )
             {
                 fail("UsbException: " + ue);
-            }
-            catch ( UsbNotActiveException unae )
+            } catch ( UsbNotActiveException unae )
             {
                 unae.printStackTrace();
                 fail("UsbNotActiveException: " + unae);
-            }
+	    }
         }
 
         public void testAsyncInFailure() throws Exception
@@ -907,13 +873,12 @@ public class HotPlugTest extends TestCase
             UsbIrp irp = inPipe.createUsbIrp();
             irp.setData(inData);
             inPipe.asyncSubmit(irp);
+
             hasSubmittedAsyncIn = true;
 
             hasRenumerated = true;
             submitRenumerateIrp();
             waitForServiceAttachedEvent(20000);
-            inPipe.abortAllSubmissions();
-            outPipe.abortAllSubmissions();                      
         }
 
 
@@ -921,6 +886,8 @@ public class HotPlugTest extends TestCase
         {
             try
             {
+                inPipe.abortAllSubmissions();
+                outPipe.abortAllSubmissions();
                 inPipe.close();
                 outPipe.close();
                 inPipe.removeUsbPipeListener(inPipeListener);
@@ -934,19 +901,19 @@ public class HotPlugTest extends TestCase
                     if ( debug )
                         System.out.println("released interface!!!!");
                 }
-            }
-            catch ( UsbClaimException uce )
+            } catch ( UsbClaimException uce )
             {
                 fail("UsbClaimException: " + uce);
-            }
-            catch ( UsbException ue )
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            } catch ( UsbException ue )
             {
                 fail("UsbException: " + ue);
-            }
-            catch ( UsbNotActiveException unae )
+            } catch ( UsbNotActiveException unae )
             {
                 fail("UsbNotActiveException: " + unae);
-            }
+	    }
         }
 
         /**
@@ -959,8 +926,7 @@ public class HotPlugTest extends TestCase
                 try
                 {
                     sendDatum();
-                }
-                catch ( Exception e )
+                } catch ( Exception e )
                 {
                     fail("The following exception was caught");
                     e.printStackTrace();
@@ -978,9 +944,14 @@ public class HotPlugTest extends TestCase
             byte[] inData = new byte[dataSize];
 
             TransmitBuffer txBuffer = new TransmitBuffer(txType, dataSize);
-
-            outPipe.syncSubmit(txBuffer.getOutBuffer());
-            inPipe.syncSubmit(inData);
+            try                                                                               // @P1A
+            {                                                                                 // @P1A
+                outPipe.syncSubmit(txBuffer.getOutBuffer());                                  // @P1C
+                inPipe.syncSubmit(inData);                                                    // @P1C
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
 
             if ( txBuffer.compareBuffers(inData) )
             {
@@ -992,8 +963,7 @@ public class HotPlugTest extends TestCase
                         System.out.print(inData[i] + ",");
                     System.out.println();
                 }
-            }
-            else
+            } else
             {
                 throw new Exception("received inData from pipe was != outData.");
             }

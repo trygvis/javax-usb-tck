@@ -9,6 +9,16 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
  
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040916 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ */
  
 import junit.framework.*;
  
@@ -37,11 +47,11 @@ public class CONFIG3_TOPOLOGY_B6_IMAGE extends TestCase
         testSuite.addTestSuite(TopologyTestConfig3.class);
         testSuite.addTestSuite(ControlIOTest.class);
         testSuite.addTestSuite(RequestTestGetDescriptor.class);
-        testSuite.addTestSuite(RequestTestGetSetConfiguration.class);
-        testSuite.addTestSuite(RequestTestGetSetInterface.class);
+        testSuite.addTestSuite(RequestTestGetConfiguration.class); // Change names without set   @P1C
+        testSuite.addTestSuite(RequestTestGetInterface.class);     // no setting anymore here    @P1C
         testSuite.addTestSuite(RequestTestGetStatus.class);
         testSuite.addTestSuite(RequestTestSetClearFeature.class);
-        testSuite.addTestSuite(RequestTestSynchFrame.class);
+        //The SynchFrame does not work with the Cypress Board                                    @P1D3
         return testSuite;
     }
  

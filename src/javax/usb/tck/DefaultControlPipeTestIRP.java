@@ -1,3 +1,5 @@
+package javax.usb.tck;
+
 /**
  * Copyright (c) 2004, International Business Machines Corporation.
  * All Rights Reserved.
@@ -7,7 +9,14 @@
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
-package javax.usb.tck;
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ */
 
 import java.util.*;
 
@@ -86,8 +95,8 @@ public class DefaultControlPipeTestIRP extends TestCase
                 /Prepare IN IRP
                 *********************************/
                 //set Control IRP specific data
-                byte INbmRequestType =UsbConst.REQUESTTYPE_DIRECTION_IN |
-                                      UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
+                byte INbmRequestType =
+                    UsbConst.REQUESTTYPE_DIRECTION_IN | UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
                 byte INbRequest = VENDOR_REQUEST_TRANSFER_DATA;
                 short INwValue = VENDOR_REQUEST_DATA_IN;
                 short INwIndex = OUTwIndex;
@@ -147,8 +156,8 @@ public class DefaultControlPipeTestIRP extends TestCase
                 /Prepare IN IRP
                 *********************************/
                 //set Control IRP specific data
-                byte INbmRequestType =UsbConst.REQUESTTYPE_DIRECTION_IN |
-                                      UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
+                byte INbmRequestType =
+                    UsbConst.REQUESTTYPE_DIRECTION_IN | UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
                 byte INbRequest = VENDOR_REQUEST_TRANSFER_DATA;
                 short INwValue = VENDOR_REQUEST_DATA_IN;
                 short INwIndex = OUTwIndex;
@@ -210,8 +219,8 @@ public class DefaultControlPipeTestIRP extends TestCase
                 /Prepare IN IRP
                 *********************************/
                 //set Control IRP specific data
-                byte INbmRequestType =UsbConst.REQUESTTYPE_DIRECTION_IN |
-                                      UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
+                byte INbmRequestType =
+                    UsbConst.REQUESTTYPE_DIRECTION_IN | UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
                 byte INbRequest = VENDOR_REQUEST_TRANSFER_DATA;
                 short INwValue = VENDOR_REQUEST_DATA_IN;
                 short INwIndex = OUTwIndex;
@@ -273,8 +282,8 @@ public class DefaultControlPipeTestIRP extends TestCase
                 /Prepare IN IRP
                 *********************************/
                 //set Control IRP specific data
-                byte INbmRequestType =UsbConst.REQUESTTYPE_DIRECTION_IN |
-                                      UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
+                byte INbmRequestType =
+                    UsbConst.REQUESTTYPE_DIRECTION_IN | UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
                 byte INbRequest = VENDOR_REQUEST_TRANSFER_DATA;
                 short INwValue = VENDOR_REQUEST_DATA_IN;
                 short INwIndex = OUTwIndex;
@@ -336,8 +345,8 @@ public class DefaultControlPipeTestIRP extends TestCase
                 /Prepare IN IRP
                 *********************************/
                 //set Control IRP specific data
-                byte INbmRequestType =UsbConst.REQUESTTYPE_DIRECTION_IN |
-                                      UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
+                byte INbmRequestType =
+                    UsbConst.REQUESTTYPE_DIRECTION_IN | UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
                 byte INbRequest = VENDOR_REQUEST_TRANSFER_DATA;
                 short INwValue = VENDOR_REQUEST_DATA_IN;
                 short INwIndex = OUTwIndex;
@@ -399,8 +408,8 @@ public class DefaultControlPipeTestIRP extends TestCase
                 /Prepare IN IRP
                 *********************************/
                 //set Control IRP specific data
-                byte INbmRequestType =UsbConst.REQUESTTYPE_DIRECTION_IN |
-                                      UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
+                byte INbmRequestType =
+                    UsbConst.REQUESTTYPE_DIRECTION_IN | UsbConst.REQUESTTYPE_TYPE_VENDOR | UsbConst.REQUESTTYPE_RECIPIENT_DEVICE;
                 byte INbRequest = VENDOR_REQUEST_TRANSFER_DATA;
                 short INwValue = VENDOR_REQUEST_DATA_IN;
                 short INwIndex = OUTwIndex;
@@ -434,6 +443,25 @@ public class DefaultControlPipeTestIRP extends TestCase
         {
             for ( int j=0; j<transmitList.length; j++ )
             {
+                UsbInterface iface = usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) 0);
+
+                try
+                {
+                    iface.claim();
+                } catch ( UsbClaimException uCE )
+                {
+                    fail("Interface already claimed!");
+                } catch ( UsbNotActiveException uNAE )
+                {
+                    fail("Configuration is not active!");
+                } catch ( UsbDisconnectedException uDE )                                      // @P1C
+                {                                                                             // @P1A
+                    fail ("A connected device should't throw the UsbDisconnectedException!"); // @P1A
+                } catch ( UsbException ue )                                                   // @P1C
+                {
+                    fail("Interface was not claimed!");
+                }
+
                 byte SentbmRequestType =
                     UsbConst.REQUESTTYPE_DIRECTION_OUT | UsbConst.REQUESTTYPE_TYPE_STANDARD | UsbConst.REQUESTTYPE_RECIPIENT_ENDPOINT;
                 byte SentbRequest = UsbConst.REQUEST_CLEAR_FEATURE;
@@ -467,7 +495,25 @@ public class DefaultControlPipeTestIRP extends TestCase
                               expectedAcceptShortPacket, verifyAcceptShortPacket, expectedLength, expectedOffset, expectedActualLength,
                               expectedException,
                               expectedData );
+
+                try
+                {
+                    iface.release();
+                } catch ( UsbClaimException uCE )
+                {
+                    fail("Interface was not claimed!");
+                } catch ( UsbNotActiveException uNAE )
+                {
+                    fail("Configuration is not active!");
+                } catch ( UsbException ue )
+                {
+                    fail("Interface was not released!");
+                } catch ( UsbDisconnectedException uDE )                                      // @P1C
+                {                                                                             // @P1A
+                    fail ("A connected device should't throw the UsbDisconnectedException!"); // @P1A
+                }                                                                             // @P1A
             }
+
         }
         usbDevice.removeUsbDeviceListener(deviceListener);
     };
@@ -557,8 +603,7 @@ public class DefaultControlPipeTestIRP extends TestCase
         if ( SyncOrAsync == SYNC_SUBMIT )
         {
             VerifyIrpMethods.printDebug("RoundTripTestIRP -- SYNC");
-        }
-        else
+        } else
         {
             VerifyIrpMethods.printDebug("RoundTripTestIRP -- ASYNC");
         }
@@ -578,8 +623,7 @@ public class DefaultControlPipeTestIRP extends TestCase
         {
             fail("Submitting the OUT IRP failed.");
             return;
-        }
-        else
+        } else
         {
             //verify OUT IRP after successful transmit--dataEventReceived
             VerifyIrpMethods.verifyUsbControlIrpAfterEvent(usbControlIrpOUT,
@@ -611,8 +655,7 @@ public class DefaultControlPipeTestIRP extends TestCase
             {
                 fail("Submitting the IN IRP failed.");
                 return;
-            }
-            else
+            } else
             {
                 VerifyIrpMethods.verifyUsbControlIrpAfterEvent(usbControlIrpIN,
                                                                (EventObject) LastUsbDeviceDataEvent,
@@ -671,8 +714,7 @@ public class DefaultControlPipeTestIRP extends TestCase
         if ( SyncOrAsync == SYNC_SUBMIT )
         {
             VerifyIrpMethods.printDebug("OneWayTestIRP -- SYNC");
-        }
-        else
+        } else
         {
             VerifyIrpMethods.printDebug("OneWayTestIRP -- ASYNC");
         }
@@ -692,8 +734,7 @@ public class DefaultControlPipeTestIRP extends TestCase
         {
             fail("Submitting the OneWayTest IRP failed.");
             return;
-        }
-        else
+        } else
         {
             //verify OUT IRP after successful transmit
             VerifyIrpMethods.verifyUsbControlIrpAfterEvent(usbControlIrp,
@@ -760,8 +801,7 @@ public class DefaultControlPipeTestIRP extends TestCase
             if ( SyncOrAsync == SYNC_SUBMIT )
             {
                 usbDevice.syncSubmit(usbControlIrp);
-            }
-            else
+            } else
             {
                 usbDevice.asyncSubmit(usbControlIrp);
                 usbControlIrp.waitUntilComplete(5000);
@@ -783,8 +823,7 @@ public class DefaultControlPipeTestIRP extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checkin for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
                 //e.printStackTrace();
@@ -793,8 +832,7 @@ public class DefaultControlPipeTestIRP extends TestCase
             assertNull("Unexpected DeviceErrorEvent received after submit", LastUsbDeviceErrorEvent);
             numSubmits++;
             return true;
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             /* The exception sould indicate the reason for the failure.
              * For this example, we'll just stop trying.
@@ -802,7 +840,11 @@ public class DefaultControlPipeTestIRP extends TestCase
             fail("DCP submission failed." + uE.getMessage());
             //System.out.println("DCP submission failed : " + uE.getMessage());
             return false;
-        }
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+	    return false;                                                                     // @P1A
+        }                                                                                     // @P1A
     };
 
 

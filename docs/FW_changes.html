@@ -1,0 +1,92 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>Modify Files for Building Images</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h2 align="center">Modify FW.C for all three Images</h2>
+
+<br>
+
+<p>The Cypress FW.C file requires only minor modifications, in order to work with the 
+JSR80 javax.USB TCK implementation.</p>
+
+<p>The modifications necessary for the FW.C file are identical for all three Images
+(BULKINT, ISODCP, TOPOLOGY), so these instructions will explain how to modify the FW.C
+file currently located in the BULKINT subdirectory.  Following the modifications to
+the copy of the FW.C file in the BULKINT subdirectory, that file should be copied into
+the ISODCP and TOPOLOGY subdirectories, overwriting the previous versions of FW.C located
+in those two subdirectories.</p>
+
+<p>Please navigate first to the FW.C file that is located (following completion of step 
+1 of the "Steps to Build EEPROM Images") in the subdirectory C:\TCK\BULKINT. </p>
+
+<p>Now, follow the steps listed below to add the necessary lines to FW.C.</p>
+
+
+<p><strong>Steps to Modify FW.C:</strong><p>
+
+<ol>
+  <li>The location for the new code in the FW.C module can be found by traversing the path listed below down to the "if" block in which the code changes will be made.
+    <blockquote>
+  Start in function "void SetupCommand(void)"
+  <br>&nbsp;&nbsp;&nbsp;-> switch(SETUPDAT[1])
+  <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-> case SC_GET_DESCRIPTOR:
+  <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-> if(DR_GetDescriptor())
+  <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-> switch(SETUPDAT[3])
+  <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-> case GD_STRING:
+  <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-> if(dscr_ptr = (void *)EZUSB_GetStringDscr(SETUPDAT[2]))
+    </blockquote>
+  <li>Add the following local variable right after the other local variables in this "if" block:
+	<blockquote>WORD wLength;</blockquote>
+  <li>Then, delete the 2 lines listed below that appear after the line "len = sdp->length;":
+	<blockquote>if (len > SETUPDAT[6]) 
+	 <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = SETUPDAT[6];</blockquote>
+  <li>Next, add the following lines after the line "len = sdp->length;":
+    <blockquote>
+	    //A string descriptor length is limited to a byte                                                        		
+        <br>//section 9.6.5 of USB spec 1.1.                                
+	    <br>//However, wLength of a standard request is two bytes.
+        <br>//The host can ask for up to 0xFFFF bytes and the device     
+        <br>//will return what is available.                                 
+        <br>//Code was modified to read the high byte, SETUPDAT[7]                                                    	
+        <br>//the wLength specified in the request (section 9.4.3    
+        <br>//USB spec 1.1 )
+        <br>wLength= SETUPDAT[7]<< 8;     
+        <br>wLength = wLength + SETUPDAT[6];
+        <br>
+        <br>if (wLength > 255)                  
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wLength = 255;   
+        <br>                                                                     
+        <br>if ((WORD)len > wLength)       
+        <br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = (BYTE) wLength;    //limit to the requested length
+    </blockquote>
+  <li>Finally, this modified FW.C file should be copied into the ISODCP (C:\TCK\ISODCP) 
+      and TOPOLOGY (C:\TCK\TOPOLOGY) subdirectories.  This action will replace the FW.C
+      files that were in those two subdirectories.  Following this step, the 
+      FW.C files should be identical in the BULKINT, ISODCP and TOPOLOGY subdirectories.
+</p>
+</ul>
+
+
+<br>
+<p>Author: <a href="Tckteam.html">TCK Team</a></p>
+<hr>
+<br>
+<div align="center">
+<p><a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="images.html">Building the Images</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="running.html">Running the Tests</a>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+<a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="changes.html">Change History</a>
+</div>
+
+</body>
+</html>

@@ -9,6 +9,16 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO   DESCRIPTION
+ * ---- -------- -------- ------ ---   ------------------------------------
+ * 0000 nnnnnnn           yymmdd       Initial Development
+ * $P1           tck.rel1 300916 raulortz Change code to check RECIPIENT, DIRECTION
+ *                                        and TYPE in the verification of bmRequestType
+ */
+
 import java.io.*;
 
 import javax.usb.*;
@@ -1031,7 +1041,9 @@ public class RequestTestGetDescriptor extends TestCase
 
         byte expectedbRequest = UsbConst.REQUEST_GET_DESCRIPTOR;
         short expectedValue;
-        byte expectedbmRequestType = UsbConst.REQUESTTYPE_DIRECTION_IN;
+        byte expectedbmRequestType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE |                  // @P1C
+                                     UsbConst.REQUESTTYPE_TYPE_STANDARD |                     // @P1A
+                                     UsbConst.REQUESTTYPE_DIRECTION_IN;                       // @P1A
 
         expectedValue = UsbUtil.toShort(descType, descIndex);
 

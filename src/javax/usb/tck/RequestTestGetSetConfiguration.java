@@ -9,6 +9,15 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------- ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 300916 raulortz Change code to check RECIPIENT, DIRECTION
+ *                                        and TYPE in the verification of bmRequestType
+ */
 
 import javax.usb.*;
 import javax.usb.event.*;
@@ -759,7 +768,9 @@ public class RequestTestGetSetConfiguration extends TestCase
     {
         //IRP values expected in get configuration Irp
 
-        byte expectedbmRequestType = UsbConst.REQUESTTYPE_DIRECTION_IN;
+        byte expectedbmRequestType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE |                  // @P1C
+                                     UsbConst.REQUESTTYPE_TYPE_STANDARD |                     // @P1A
+                                     UsbConst.REQUESTTYPE_DIRECTION_IN;                       // @P1A
         byte expectedbRequest = UsbConst.REQUEST_GET_CONFIGURATION;
         short expectedwValue = 0;
         short expectedwIndex = 0;
@@ -776,7 +787,9 @@ public class RequestTestGetSetConfiguration extends TestCase
     {
         //IRP values expected in set configuration Irp
 
-        byte expectedbmRequestType = UsbConst.REQUESTTYPE_DIRECTION_OUT;
+        byte expectedbmRequestType = UsbConst.REQUESTTYPE_RECIPIENT_DEVICE |                  // @P1C
+                                     UsbConst.REQUESTTYPE_TYPE_STANDARD |                     // @P1A
+                                     UsbConst.REQUESTTYPE_DIRECTION_OUT;                      // @P1A
         byte expectedbRequest = UsbConst.REQUEST_SET_CONFIGURATION;
         short expectedwIndex = 0;
 

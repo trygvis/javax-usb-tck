@@ -21,11 +21,17 @@ run the following tests as specified and verify your results match the expected 
 <p><strong>Notes:</strong> The tests in the test suite must be executed from the root
 directory of the extracted archive (e.g. <code>/javaxusbtck-1_0/</code>). </p>
 
+<p> There is a group of base tests and three optional tests, your implementation must pass at least 
+the base tests. Depending whether your implementation supports or not the USB aspects tested in the optional 
+tests, it should pass also the optional tests individually.</p>
+
 <p> The tests are grouped into test programs based on hardware configuration and EEPROM image required to be programmed into the Cypress EZ-USB FX development board.</p>
 
-<p> The EEPROM images required for each test are located in /javaxusbtck-1_0/images.</p>
+<p> The EEPROM images required for each test are located in subdirectory in which
+    the images were compiled during the step "Building the Images" (e.g. <code>/tck/BULKINT, 
+    /tck/ISODCP, /tck/TOPOLOGY</code>).</p>
 
-<h3> Tests </h3> 
+<h3> Base tests </h3> 
 
 <p><a href = "TopologyTest1.html"> Topology Test 1 </a></p>
 
@@ -33,10 +39,17 @@ directory of the extracted archive (e.g. <code>/javaxusbtck-1_0/</code>). </p>
 
 <p><a href = "TopologyTest3.html"> Topology Test 3 </a></p>
 
-<p><a href = "IsochrDefCtrlPipeTest.html"> Isochronous and Default Control Pipe Image Tests</a></p>
+<p><a href = "DefCtrlPipeTest.html"> Default Control Pipe Image Tests</a></p>
 
 <p><a href = "BulkInterruptTest.html"> Bulk and Interrupt Image Tests</a></p>
 
+<h3> Optional tests </h3> 
+
+<p><a href = "SetConfiguration.html"> Set configuration optional tests </a></p>
+
+<p><a href = "SetInterface.html"> Set interface optional tests </a></p>
+
+<p><a href = "Isochronous.html"> Isochronous transfers optional tests </a></p>
 
 
 <p><strong>Note:</strong> As noted above, to pass the TCK all tests must run and produce the expected results as specified in this documentation.  However, if you are doing preliminary testing with the TCK and run into errors, before running the next test make sure each USB device is reset to its initial state by unplugging and replugging the device into the USB system.  Alternatively for the Cypress development board, pressing the button labeled "Reset" on the Cypress development board will cause the board to be reset to its initial state.  The Cypress board has completed resetting when the digital counter starts incrementing for the isodpc.b6 and bulkint.b6 images.  If the topology.b6 image is programmed into the board the counter is not used, so wait a few seconds after reset before running the tests.  </p>
@@ -47,9 +60,10 @@ directory of the extracted archive (e.g. <code>/javaxusbtck-1_0/</code>). </p>
 <hr>
 <br>
 <div align="center">
-<a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<p><a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
 <a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
-Running the Tests&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="images.html">Building the Images</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+Running the Tests&nbsp;&nbsp;|&nbsp;&nbsp;</p>
 <a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
 <a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
 <a href="changes.html">Change History</a>

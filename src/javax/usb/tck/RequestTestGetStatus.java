@@ -9,6 +9,19 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------- ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ * $P2           tck.rel1 040916 raulortz Redesign TCK to create base and optional
+ *                                        tests. Separate setConfig, setInterface
+ *                                        and isochronous transfers as optionals.
+ * $P3           tck.rel1 300916 raulortz Change code to check RECIPIENT, DIRECTION
+ *                                        and TYPE in the verification of bmRequestType
+ */
 
 import javax.usb.*;
 import javax.usb.event.*;
@@ -77,25 +90,7 @@ public class RequestTestGetStatus extends TestCase
         requestType = UsbConst.REQUESTTYPE_DIRECTION_IN;
         statusExpected = 0;
 
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage());
-        }
-
+                                                                                              // @P2D16
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;
 
@@ -118,20 +113,17 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
             /*status is unknown at this point, so don't check the value yet*/
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -157,19 +149,16 @@ public class RequestTestGetStatus extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception setting Feature. Exception message: " + uE.getMessage() );
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -196,8 +185,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -205,12 +193,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -237,19 +223,16 @@ public class RequestTestGetStatus extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception clearing Feature. Exception message: " + uE.getMessage() );
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -276,8 +259,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -285,12 +267,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -329,23 +309,19 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             usbExceptionThrown = true;
-        }
-        finally
+        } finally
         {
             assertTrue("UsbException should have been thrown for using an illegal recipient type:  " 
                        + UsbUtil.toHexString(recipientType), usbExceptionThrown);       
@@ -354,8 +330,7 @@ public class RequestTestGetStatus extends TestCase
         try
         {
             Thread.sleep (250);
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             fail("Sleep was interrupted");
         }
@@ -380,31 +355,28 @@ public class RequestTestGetStatus extends TestCase
                       UsbConst.REQUESTTYPE_RECIPIENT_INTERFACE;
         statusExpected = 0;
 
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
-            try
-            {
-                // Wait for setConfiguration Data event before continuing 
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage());
-        }
-
+                                                                                              // @P2D15
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;
 
         try
         {
-
+            try
+            {
+                usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) target).claim();
+            } catch ( UsbClaimException uCE )
+            {
+                fail("Config " + configurationNumber + " Interface " + target + " is already claimed!");
+            } catch ( UsbNotActiveException uNAE )
+            {
+                fail("Config " + configurationNumber + " is not active!");
+            } catch ( UsbException uE )
+            {
+                fail("Config " + configurationNumber + " could not be claimed!");
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
             status = StandardRequest.getStatus(usbDevice, recipientType, target);
 
             try
@@ -421,8 +393,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -432,12 +403,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -466,25 +435,7 @@ public class RequestTestGetStatus extends TestCase
         statusExpected = 1;
         endpoint = 0x82;
 
-        try
-        {
-
-            StandardRequest.setConfiguration(usbDevice, configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage());
-        }
-
+                                                                                              // @P2D15
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;
 
@@ -507,20 +458,17 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
             /*status is unknown at this point, so don't check the value yet */
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -547,19 +495,16 @@ public class RequestTestGetStatus extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception setting Feature. Exception message: " + uE.getMessage() );
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -586,8 +531,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -595,12 +539,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -626,19 +568,16 @@ public class RequestTestGetStatus extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception clearing Feature. Exception message: " + uE.getMessage() );
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -665,8 +604,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -674,12 +612,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -721,23 +657,19 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             usbExceptionThrown = true;
-        }
-        finally
+        } finally
         {
             assertTrue("UsbException should have been thrown for using an illegal recipient type:  " 
                        + UsbUtil.toHexString(recipientType), usbExceptionThrown);       
@@ -746,11 +678,24 @@ public class RequestTestGetStatus extends TestCase
         try
         {
             Thread.sleep (250);
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             fail("Sleep was interrupted");
         }
+
+        try
+        {
+            usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) target).release();
+        } catch ( UsbClaimException uCE )
+        {
+            fail("Config " + configurationNumber + " Interface " + target + " is not claimed!");
+        } catch ( UsbException uE )
+        {
+            fail("Config " + configurationNumber + " could not be released!");
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         /* Verify proper listener event received */
         assertNull("DeviceDataEvent should be null.", LastUsbDeviceDataEvent);
@@ -792,25 +737,7 @@ public class RequestTestGetStatus extends TestCase
         requestType = UsbConst.REQUESTTYPE_DIRECTION_IN;
         statusExpected = 0;
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage());
-        }
-
+                                                                                              // @P2D16
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;
 
@@ -833,20 +760,17 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
             /*status is unknown at this point, so don't check the value yet*/
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -872,19 +796,16 @@ public class RequestTestGetStatus extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception setting Feature. Exception message: " + uE.getMessage() );
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -911,8 +832,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -920,12 +840,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -952,19 +870,16 @@ public class RequestTestGetStatus extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception clearing Feature. Exception message: " + uE.getMessage() );
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -991,8 +906,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -1000,12 +914,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -1043,23 +955,19 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             usbExceptionThrown = true;
-        }
-        finally
+        } finally
         {
             assertTrue("UsbException should have been thrown for using an illegal recipient type:  " 
                        + UsbUtil.toHexString(recipientType), usbExceptionThrown);       
@@ -1068,8 +976,7 @@ public class RequestTestGetStatus extends TestCase
         try
         {
             Thread.sleep (250);
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             fail("Sleep was interrupted");
         }
@@ -1093,31 +1000,29 @@ public class RequestTestGetStatus extends TestCase
                       UsbConst.REQUESTTYPE_RECIPIENT_INTERFACE;
         statusExpected = 0;
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                // Wait for setConfiguration Data event before continuing 
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage());
-        }
-
+                                                                                              // @P2D16
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;
 
         try
         {
 
+            try
+            {
+                usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) target).claim();
+            } catch ( UsbClaimException uCE )
+            {
+                fail("Config " + configurationNumber + " Interface " + target + " is already claimed!");
+            } catch ( UsbNotActiveException uNAE )
+            {
+                fail("Config " + configurationNumber + " is not active!");
+            } catch ( UsbException uE )
+            {
+                fail("Config " + configurationNumber + " could not be claimed!");
+            } catch ( UsbDisconnectedException uDE )                                          // @P1C
+            {                                                                                 // @P1A
+                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
+            }                                                                                 // @P1A
             status = standardRequest.getStatus(recipientType, target);
 
             try
@@ -1134,8 +1039,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -1145,12 +1049,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -1179,25 +1081,7 @@ public class RequestTestGetStatus extends TestCase
         statusExpected = 1;
         endpoint = 0x82;
 
-        try
-        {
-
-            standardRequest.setConfiguration(configurationNumber);
-            try
-            {
-                /*Wait for setConfiguration Data event before continuing */
-                Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
-            {
-                fail("Sleep was interrupted.");
-            }
-        }
-        catch ( UsbException uE )
-        {
-            fail ("Got exception setting Configuration to a valid value.  Exception message: " + uE.getMessage());
-        }
-
+                                                                                              // @P2D16
         LastUsbDeviceDataEvent = null;
         LastUsbDeviceErrorEvent = null;
 
@@ -1220,20 +1104,17 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
             /*status is unknown at this point, so don't check the value yet	*/
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -1260,19 +1141,16 @@ public class RequestTestGetStatus extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception setting Feature. Exception message: " + uE.getMessage() );
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -1299,8 +1177,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -1308,12 +1185,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -1339,19 +1214,16 @@ public class RequestTestGetStatus extends TestCase
             {
                 /*Wait for setConfiguration Data event before continuing */
                 Thread.sleep(250);
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted.");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception clearing Feature. Exception message: " + uE.getMessage() );
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -1378,8 +1250,7 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
@@ -1387,12 +1258,10 @@ public class RequestTestGetStatus extends TestCase
             assertEquals("Status is not as expected.  Expected value = " + statusExpected + ", Actual value = " + status,
                          statusExpected, status);
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             fail ("Got illegal argument exception.  Exception message" + iE.getMessage() );
         }
@@ -1434,23 +1303,19 @@ public class RequestTestGetStatus extends TestCase
                     }
                     Thread.sleep( 20 ); //wait 20 ms before checking for event
                 }
-            }
-            catch ( InterruptedException e )
+            } catch ( InterruptedException e )
             {
                 fail("Sleep was interrupted");
             }
 
 
-        }
-        catch ( UsbException uE )
+        } catch ( UsbException uE )
         {
             fail ("Got exception getting the device status. Exception message: " + uE.getMessage());
-        }
-        catch ( IllegalArgumentException iE )
+        } catch ( IllegalArgumentException iE )
         {
             usbExceptionThrown = true;
-        }
-        finally
+        } finally
         {
             assertTrue("UsbException should have been thrown for using an illegal recipient type:  " 
                        + UsbUtil.toHexString(recipientType), usbExceptionThrown);       
@@ -1459,11 +1324,24 @@ public class RequestTestGetStatus extends TestCase
         try
         {
             Thread.sleep (250);
-        }
-        catch ( InterruptedException e )
+        } catch ( InterruptedException e )
         {
             fail("Sleep was interrupted");
         }
+
+        try
+        {
+            usbDevice.getActiveUsbConfiguration().getUsbInterface((byte) target).release();
+        } catch ( UsbClaimException uCE )
+        {
+            fail("Config " + configurationNumber + " Interface " + target + " is not claimed!");
+        } catch ( UsbException uE )
+        {
+            fail("Config " + configurationNumber + " could not be released!");
+        } catch ( UsbDisconnectedException uDE )                                              // @P1C
+        {                                                                                     // @P1A
+            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
+        }                                                                                     // @P1A
 
         /* Verify proper listener event received */
         assertNull("DeviceDataEvent should be null.", LastUsbDeviceDataEvent);
@@ -1481,6 +1359,9 @@ public class RequestTestGetStatus extends TestCase
         short expectedLength = 2;
         byte[] expectedData = new byte[expectedLength];
 
+        expectedbmRequestType = expectedbmRequestType |                                       // @P3A
+                                UsbConst.REQUESTTYPE_TYPE_STANDARD |                          // @P3A
+                                UsbConst.REQUESTTYPE_DIRECTION_IN;                            // @P3A
 
         expectedData[1] = (byte)0;
         expectedData[0] = (byte)0;

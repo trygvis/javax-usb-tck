@@ -10,6 +10,15 @@ package javax.usb.tck;
  *
  */
 
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ */
+
 import java.io.*;
 import java.util.*;
 import javax.usb.*;
@@ -373,6 +382,11 @@ public class FindProgrammableDevice extends Object
              * But, who knows, it might...remember this is just an example!
              */
         }
+        catch ( UsbDisconnectedException uDE )                                                // @P1A
+        {                                                                                     // @P1A
+            System.out.println ("A connected device should't throw the UsbDisconnectedException!");// @P1A
+        }                                                                                     // @P1A
+
 
         /* this is just normal recursion.  Nothing special. */
         if ( usbDevice.isUsbHub() )

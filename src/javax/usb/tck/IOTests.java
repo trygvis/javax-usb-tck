@@ -6,6 +6,15 @@
  * of the Common Public License:
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
+
+/*
+ * Change Activity: See below.
+ *
+ * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
+ * ---- -------- -------- ------ -------  ------------------------------------
+ * 0000 nnnnnnn           yymmdd          Initial Development
+ * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
+ */
  
 package javax.usb.tck;
  
@@ -488,7 +497,10 @@ public class IOTests
                 }
             }
         }
- 
+        catch ( UsbDisconnectedException uDE )                                                // @P1A
+        {                                                                                     // @P1A
+            Assert.fail ("A connected device should't throw the UsbDisconnectedException!");  // @P1A
+        }                                                                                     // @P1A
         catch ( UsbException uE )
         {
             /* The exception sould indicate the reason for the failure.
