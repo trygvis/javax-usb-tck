@@ -43,6 +43,7 @@ public class OPT_CONFIG3_TOPOLOGY_SET_CONFIG extends TestCase
         //be called as a separate test.
         testSuite.addTestSuite(SignatureTest.class);
         testSuite.addTestSuite(RequestTestGetSetConfiguration.class);
+        testSuite.addTestSuite(TopologyTestConfig3.class);
         return testSuite;
     }
  

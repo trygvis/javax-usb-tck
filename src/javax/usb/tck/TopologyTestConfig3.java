@@ -9,18 +9,6 @@ package javax.usb.tck;
  * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
  */
 
-/*
- * Change Activity: See below.
- *
- * FLAG REASON   RELEASE  DATE   WHO      DESCRIPTION
- * ---- -------- -------- ------ -------  ------------------------------------
- * 0000 nnnnnnn           yymmdd          Initial Development
- * $P1           tck.rel1 040804 raulortz Support for UsbDisconnectedException
- * $P2           tck.rel1 040916 raulortz Redesign TCK to create base and optional
- *                                        tests. Separate setConfig, setInterface
- *                                        and isochronous transfers as optionals.
- */
-
 import java.io.*;
 import java.util.*;
 
@@ -91,7 +79,7 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
         }
         catch ( UsbException uE )
         {
-            fail("An error occurred when attempting to create the UsbServices implementation");
+            fail("An error occurred when attempting to create the UsbServices implementation");         
         }
         catch ( SecurityException sE )
         {
@@ -104,7 +92,7 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
         }
         catch ( UsbException uE )
         {
-            fail("An error occurred when attempting to load the properties file");
+            fail("An error occurred when attempting to load the properties file");          
         }
         catch ( SecurityException sE )
         {
@@ -124,7 +112,7 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
         }
         catch ( UsbException uE )
         {
-            fail("An error occurred when accessing javax.usb");
+            fail("An error occurred when accessing javax.usb");         
         }
         catch ( SecurityException sE )
         {
@@ -165,7 +153,7 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
 
             switch ( usbNextList.size() )
             {
-            case 0:
+            case 0: 
                 break;
             case 1:
                 numHubsWithDevices++;
@@ -195,20 +183,14 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
                 }
                 assertFalse("This hub should not be a root UsbHub!",
                             usbRootHubOneHub.isRootUsbHub());
-                try                                                                           // @P1A
-                {                                                                             // @P1A
-                    usbProgramableParentPort = usbCurrentHub.getUsbPort(usbProgramableDevice.getParentUsbPort().getPortNumber());
-                }                                                                             // @P1A
-                catch ( UsbDisconnectedException uDE )                                        // @P1A
-                {                                                                             // @P1A
-                    fail ("A connected device should't throw the UsbDisconnectedException!"); // @P1A
-                }                                                                             // @P1A
+                usbProgramableParentPort = usbCurrentHub.getUsbPort(usbProgramableDevice.getParentUsbPort().getPortNumber());
                 break;
             default:
                 fail("There are too many devices attached to this root UsbHub!");
                 break;
             }
         }
+
         assertEquals("Only two root UsbHub should have devices connected in this configuration!",
                      (int) 2, numHubsWithDevices);
 
@@ -301,7 +283,8 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
 
             usbCurrentConfig = (UsbConfiguration) usbListUsbConfigs.get(i);
             usbCurrentConfigDescriptor = usbCurrentConfig.getUsbConfigurationDescriptor();
-                                                                                              // @P2D2
+            if ( !usbCurrentConfig.isActive() )
+                usbNonDfltCtrlPipeRequests.setConfiguration(usbCurrentConfigDescriptor.bConfigurationValue());
             usbInterfacesList = usbCurrentConfig.getUsbInterfaces();
             for ( int j = 0; j < usbInterfacesList.size(); j++ )
             {
@@ -352,10 +335,7 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
          * Assert that the programable device's parent port leads back to the programable device
          * as well as its parent Hub
          */
-        try                                                                                   // @P1A
-        {                                                                                     // @P1A
-            usbProgramableParentPort = usbProgramableDevice.getParentUsbPort();
-
+        usbProgramableParentPort = usbProgramableDevice.getParentUsbPort();
         assertTrue("The programable device's parent port should have an attached device!",
                    usbProgramableParentPort.isUsbDeviceAttached());
         assertNotNull("The programable device's parent port getUsbDevice method shouln't return null!",
@@ -381,14 +361,9 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
 
         /*
          * Assert that the UsbDevice methods match with the programable device
-         */
+         */     
         assertFalse("The programable device should not be a UsbHub",
                     usbProgramableDevice.isUsbHub());
-        }                                                                                     // @P1A
-        catch ( UsbDisconnectedException uDE )                                                // @P1A
-        {                                                                                     // @P1A
-            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
-        }                                                                                     // @P1A
         try
         {
             assertEquals("The Manufacturer string doesn't match the programable device Manufacturer string",
@@ -402,10 +377,6 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
         {
             fail ("The String encoding is not supported!");
         }
-        catch ( UsbDisconnectedException uDE )                                                // @P1A
-        {                                                                                     // @P1A
-            fail ("A connected device should't throw the UsbDisconnectedException!");         // @P1A
-        }                                                                                     // @P1A
         assertEquals("The device speed doesn't match the programable device device speed",
                      UsbConst.DEVICE_SPEED_FULL, usbProgramableDevice.getSpeed());
         assertTrue("The active configuration should be active!",
@@ -472,7 +443,7 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
         assertEquals("The Max Packet Size 0 doesn't match the programable device Max Packet Size 0",
                      programableMaxPacketSize, usbProgramableDevDescriptor.bMaxPacketSize0());
         assertEquals("The Vendor ID does't match the programable device Vendor ID",
-                     programableVendorID, usbProgramableDevDescriptor.idVendor());
+                     programableVendorID, usbProgramableDevDescriptor.idVendor());       
         assertEquals("The Product ID doesn't match the programable device Product ID",
                      programableProductID, usbProgramableDevDescriptor.idProduct());
         assertEquals("The Device Release doen't match the programable device Device Release",
@@ -540,13 +511,23 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
                     assertNotNull("A UsbNotActiveException should not be null",
                                   uNAE);
                 }
-                                                                                              // @P2D8
+                try
+                {
+                    usbProgramableRequests.setConfiguration(usbCurrentConfigDescriptor.bConfigurationValue());
+                }
+                catch ( UsbException uE )
+                {
+                    fail("Unable to set the UsbConfiguration");
+                }
             }
 
-                                                                                              // @P2D2
-            assertEquals("The active configuration # should now be 1",                        // @P2C
-                         (byte) (1), usbProgramableDevice.getActiveUsbConfigurationNumber()); // @P2C
-                                                                                              // @P2D3
+            assertTrue("Config #" + (i+1) + " should now be the active configuration",
+                       usbCurrentConfig.isActive());
+            assertEquals("The active configuration # should now be " + (i+1),
+                         (byte) (i+1), usbProgramableDevice.getActiveUsbConfigurationNumber());
+            assertEquals("The active configuration should be the current config",
+                         usbCurrentConfigDescriptor.bConfigurationValue(),
+                         usbProgramableDevice.getActiveUsbConfiguration().getUsbConfigurationDescriptor().bConfigurationValue());
 
             try
             {
@@ -557,19 +538,14 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
             {
                 fail ("The String encoding is not supported!");
             }
-            catch ( UsbDisconnectedException uDE )                                            // @P1A
-            {                                                                                 // @P1A
-                fail ("A connected device should't throw the UsbDisconnectedException!");     // @P1A
-            }                                                                                 // @P1A
             assertEquals("The Configuration UsbDevice method doesn't lead back to the programable device",
                          programableVendorID,
                          usbCurrentConfig.getUsbDevice().getUsbDeviceDescriptor().idVendor());
             assertEquals("The Configuration UsbDevice method doesn't lead back to the programable device",
                          programableProductID,
                          usbCurrentConfig.getUsbDevice().getUsbDeviceDescriptor().idProduct());
-            if (i==0)                                                                         // @P2A
-                assertTrue("Config #" + (1) + " should be the Active Configuration!",         // @P2C
-                           usbCurrentConfig.isActive());
+            assertTrue("Config #" + (i+1) + " should be the Active Configuration!",
+                       usbCurrentConfig.isActive());
             assertEquals("The Config length field doesn't match with programable device Config #" + (i+1),
                          (byte) 0x09, usbCurrentConfigDescriptor.bLength());
             assertEquals("The Config descriptor type field is not set to Configuration",
@@ -623,53 +599,42 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
                 {
                     fail ("The String encoding is not supported!");
                 }
-                catch ( UsbDisconnectedException uDE )                                        // @P1A
-                {                                                                             // @P1A
-                    fail ("A connected device should't throw the UsbDisconnectedException!"); // @P1A
-                }                                                                             // @P1A
                 assertEquals("The number of settings for Config #" + (i+1) + " Interface #" +j+ " should match the programable device",
                              programableNumSettings[i][j], usbCurrentInterface.getNumSettings());
                 assertFalse("Setting #" + (programableNumSettings[i][j]+1) + " should not exist for Config #" + (i+1) + " Interface #" +j,
                             usbCurrentInterface.containsSetting((byte) (programableNumSettings[i][j]+1)));
                 assertNull("The getSetting(" + (programableNumSettings[i][j]+1) + ") should be Null for Config #" + (i+1) + " Interface #" +j,
                            usbCurrentInterface.getSetting((byte) (programableNumSettings[i][j]+1)));
-                if ( i==0 )                                                                   // @P2A
-		{                                                                             // @P2A
-                    try
-                    {
-                        assertEquals("The Default Active Setting # for Config #" + (i+1) + " Interface #" +j+ "should be 0",
-                                     (byte) 0x00, usbCurrentInterface.getActiveSettingNumber());
-                        assertEquals("The Default Active Setting is the setting received by getUsbInterfaces",
-                                     usbCurrentInterface.getInterfaceString(),
-                                     usbCurrentInterface.getActiveSetting().getInterfaceString());
-                    }
-                    catch ( UsbNotActiveException uNAE )
-                    {
-                        fail("Config #" + (i+1) + " Interface #" + j +" is not active!");
-                    }
-                    catch ( UnsupportedEncodingException uEE )
-                    {
-                        fail ("The String encoding is not supported!");
-                    }
-                    catch ( UsbDisconnectedException uDE )                                    // @P1C
-                    {                                                                         // @P1A
-                        fail ("A connected device should't throw the UsbDisconnectedException!");  // @P1A
-                    }                                                                         // @P1A
-		}                                                                             // @P2A
+                try
+                {
+                    assertEquals("The Default Active Setting # for Config #" + (i+1) + " Interface #" +j+ "should be 0",
+                                 (byte) 0x00, usbCurrentInterface.getActiveSettingNumber());
+                    assertEquals("The Default Active Setting is the setting received by getUsbInterfaces",
+                                 usbCurrentInterface.getInterfaceString(),
+                                 usbCurrentInterface.getActiveSetting().getInterfaceString());
+                }
+                catch ( UsbNotActiveException uNAE )
+                {
+                    fail("Config #" + (i+1) + " Interface #" + j +" is not active!");
+                }
+                catch ( UnsupportedEncodingException uEE )
+                {
+                    fail ("The String encoding is not supported!");
+                }
                 assertEquals("The current Interface # for Config #" + (i+1) + " should  be " +j,
                              (byte) j, usbCurrentInterface.getUsbInterfaceDescriptor().bInterfaceNumber());
                 assertEquals("The Setting # for Config #" + (i+1) + " Interface #" +j+ "should be 0",
                              (byte) 0x00, usbCurrentInterface.getUsbInterfaceDescriptor().bAlternateSetting());
 
                 /*
-                 * Assert that the Alternate Settings of the Interfaces and
-                 * InterfaceDescriptors match the expected values from
+                 * Assert that the Alternate Settings of the Interfaces and 
+                 * InterfaceDescriptors match the expected values from 
                  * the programmable device for each Configuration and
                  * Interface
                  */
                 for ( int k = 0; k < usbCurrentInterface.getNumSettings(); k++ )
                 {
-                    UsbInterfaceDescriptor usbCurrentInterfaceDescriptor;
+                    UsbInterfaceDescriptor usbCurrentInterfaceDescriptor;           
                     List usbListUsbEndpoints;
 
                     assertTrue("Config #" + (i+1) + " Interface #" +j+ " should contain AlternateSetting #" +k,
@@ -689,19 +654,12 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
                     {
                         fail ("The String encoding is not supported!");
                     }
-                    catch ( UsbDisconnectedException uDE )                                    // @P1C
-                    {                                                                         // @P1A
-                        fail ("A connected device should't throw the UsbDisconnectedException!");  // @P1A
-                    }                                                                         // @P1A
-		    if (i == 0 )                                                              // @P2A
-		    {                                                                         // @P2A
-                        if ( k == 0 )
-                            assertTrue("Config #" + (i+1) + " Interface #" +j+ " AlternateSetting #" +k+ " should be active",
-                                       usbCurrentInterface.isActive());
-                        else
-                            assertFalse("Config #" + (i+1) + " Interface #" +j+ " AlternateSetting #" +k+ " should not be active",
-                                        usbCurrentInterface.isActive());
-                    }                                                                         // @P2A
+                    if ( k == 0 )
+                        assertTrue("Config #" + (i+1) + " Interface #" +j+ " AlternateSetting #" +k+ " should be active",
+                                   usbCurrentInterface.isActive());
+                    else
+                        assertFalse("Config #" + (i+1) + " Interface #" +j+ " AlternateSetting #" +k+ " should not be active",
+                                    usbCurrentInterface.isActive());
                     assertEquals("The current Interface # for Config #" + (i+1) + " should  not change",
                                  (byte) j, usbCurrentInterfaceDescriptor.bInterfaceNumber());
                     assertEquals("The current setting # for Config #" + (i+1) + " Interface #" +j+ " should be " + k,
@@ -763,10 +721,6 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
                         {
                             fail ("The String encoding is not supported!");
                         }
-                        catch ( UsbDisconnectedException uDE )                                // @P1C
-                        {                                                                     // @P1A
-                            fail ("A connected device should't throw the UsbDisconnectedException!");   // @P1A
-                        }                                                                     // @P1A
                         byte address = programableEndpointAddr[i][j][k][l];
                         byte direction = (byte) (address / (byte) 0x70);
                         if ( programableEndpointAddr[i][j][k][l] / (byte) 0x70 == -1 )
@@ -783,7 +737,6 @@ public class TopologyTestConfig3 extends TestCase implements TopologyTests
                                      programableEndpointType[i][j][k][l], ((byte) 0x03 & usbCurrentEndpointDescriptor.bmAttributes()));
                         assertEquals("The Endpoint Max Packet Size isn't correct for Config #" + (i+1) + " Interface #" +j+ " AlternateSetting #" +k+ " Endpoint Address " + programableEndpointAddr[i][j][k][l],
                                      programableEndpointMPS[i][j][k][l], usbCurrentEndpointDescriptor.wMaxPacketSize());
-
                         assertEquals("The Endpoint Interval isn't correct for Config #" + (i+1) + " Interface #" +j+ " AlternateSetting #" +k+ " Endpoint Address " + programableEndpointAddr[i][j][k][l],
                                      programableEndpointInter[i][j][k][l], usbCurrentEndpointDescriptor.bInterval());
                         assertEquals("The Endpoint Descriptor type isn't correct for Config #" + (i+1) + " Interface #" +j+ " AlternateSetting #" +k+ " Endpoint Address " + programableEndpointAddr[i][j][k][l],

@@ -44,7 +44,7 @@ public class CONFIG3_TOPOLOGY_B6_IMAGE extends TestCase
         //Each method beginning with testXXX() in the specified class will
         //be called as a separate test.
         testSuite.addTestSuite(SignatureTest.class);
-        testSuite.addTestSuite(TopologyTestConfig3.class);
+        testSuite.addTestSuite(TopologyTestConfig3Limited.class);
         testSuite.addTestSuite(ControlIOTest.class);
         testSuite.addTestSuite(RequestTestGetDescriptor.class);
         testSuite.addTestSuite(RequestTestGetConfiguration.class); // Change names without set   @P1C
