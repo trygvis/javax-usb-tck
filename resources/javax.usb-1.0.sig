@@ -1,3 +1,8 @@
+1 javax.usb.UsbAbortException extends javax.usb.UsbException
+{
+  1 javax.usb.UsbAbortException (java.lang.String)
+  1 javax.usb.UsbAbortException ()
+}
 1 javax.usb.UsbBabbleException extends javax.usb.UsbException
 {
   1 javax.usb.UsbBabbleException (java.lang.String)
@@ -21,7 +26,7 @@
   1025 boolean containsUsbInterface (byte)
   1025 javax.usb.UsbDevice getUsbDevice ()
   1025 javax.usb.UsbConfigurationDescriptor getUsbConfigurationDescriptor ()
-  1025 java.lang.String getConfigurationString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException
+  1025 java.lang.String getConfigurationString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException,javax.usb.UsbDisconnectedException
 }
 1537 javax.usb.UsbConfigurationDescriptor implements javax.usb.UsbDescriptor
 {
@@ -54,11 +59,11 @@
 }
 1537 javax.usb.UsbDevice
 {
-  1025 javax.usb.UsbPort getParentUsbPort ()
+  1025 javax.usb.UsbPort getParentUsbPort () throws javax.usb.UsbDisconnectedException
   1025 boolean isUsbHub ()
-  1025 java.lang.String getManufacturerString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException
-  1025 java.lang.String getSerialNumberString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException
-  1025 java.lang.String getProductString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException
+  1025 java.lang.String getManufacturerString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException,javax.usb.UsbDisconnectedException
+  1025 java.lang.String getSerialNumberString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException,javax.usb.UsbDisconnectedException
+  1025 java.lang.String getProductString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException,javax.usb.UsbDisconnectedException
   1025 java.lang.Object getSpeed ()
   1025 java.util.List getUsbConfigurations ()
   1025 javax.usb.UsbConfiguration getUsbConfiguration (byte)
@@ -67,12 +72,12 @@
   1025 javax.usb.UsbConfiguration getActiveUsbConfiguration ()
   1025 boolean isConfigured ()
   1025 javax.usb.UsbDeviceDescriptor getUsbDeviceDescriptor ()
-  1025 javax.usb.UsbStringDescriptor getUsbStringDescriptor (byte) throws javax.usb.UsbException
-  1025 java.lang.String getString (byte) throws javax.usb.UsbException,java.io.UnsupportedEncodingException
-  1025 void syncSubmit (javax.usb.UsbControlIrp) throws javax.usb.UsbException,java.lang.IllegalArgumentException
-  1025 void asyncSubmit (javax.usb.UsbControlIrp) throws javax.usb.UsbException,java.lang.IllegalArgumentException
-  1025 void syncSubmit (java.util.List) throws javax.usb.UsbException,java.lang.IllegalArgumentException
-  1025 void asyncSubmit (java.util.List) throws javax.usb.UsbException,java.lang.IllegalArgumentException
+  1025 javax.usb.UsbStringDescriptor getUsbStringDescriptor (byte) throws javax.usb.UsbException,javax.usb.UsbDisconnectedException
+  1025 java.lang.String getString (byte) throws javax.usb.UsbException,java.io.UnsupportedEncodingException,javax.usb.UsbDisconnectedException
+  1025 void syncSubmit (javax.usb.UsbControlIrp) throws javax.usb.UsbException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 void asyncSubmit (javax.usb.UsbControlIrp) throws javax.usb.UsbException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 void syncSubmit (java.util.List) throws javax.usb.UsbException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 void asyncSubmit (java.util.List) throws javax.usb.UsbException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
   1025 javax.usb.UsbControlIrp createUsbControlIrp (byte,byte,short,short)
   1025 void addUsbDeviceListener (javax.usb.event.UsbDeviceListener)
   1025 void removeUsbDeviceListener (javax.usb.event.UsbDeviceListener)
@@ -91,6 +96,11 @@
   1025 byte iProduct ()
   1025 byte iSerialNumber ()
   1025 byte bNumConfigurations ()
+}
+1 javax.usb.UsbDisconnectedException extends java.lang.RuntimeException
+{
+  1 javax.usb.UsbDisconnectedException (java.lang.String)
+  1 javax.usb.UsbDisconnectedException ()
 }
 1537 javax.usb.UsbEndpoint
 {
@@ -115,8 +125,8 @@
 17 javax.usb.UsbHostManager extends java.lang.Object
 {
   2 javax.usb.UsbHostManager ()
-  41 javax.usb.UsbServices getUsbServices () throws javax.usb.UsbException,java.lang.SecurityException
-  41 java.util.Properties getProperties () throws javax.usb.UsbException,java.lang.SecurityException
+  9 javax.usb.UsbServices getUsbServices () throws javax.usb.UsbException,java.lang.SecurityException
+  9 java.util.Properties getProperties () throws javax.usb.UsbException,java.lang.SecurityException
   10 javax.usb.UsbServices createUsbServices () throws javax.usb.UsbException,java.lang.SecurityException
   10 void setupProperties () throws javax.usb.UsbException,java.lang.SecurityException
   26 java.lang.String USBSERVICES_PROPERTY_NOT_DEFINED ()
@@ -136,10 +146,9 @@
 }
 1537 javax.usb.UsbInterface
 {
-  1025 void claim () throws javax.usb.UsbClaimException,javax.usb.UsbException,javax.usb.UsbNotActiveException
-  1025 void claim (javax.usb.UsbInterfacePolicy) throws javax.usb.UsbClaimException,javax.usb.UsbException,javax.usb.UsbNotActiveException
-  1025 void release () throws javax.usb.UsbPolicyDenied,javax.usb.UsbClaimException,javax.usb.UsbException,javax.usb.UsbNotActiveException
-  1025 void release (java.lang.Object) throws javax.usb.UsbPolicyDenied,javax.usb.UsbClaimException,javax.usb.UsbException,javax.usb.UsbNotActiveException
+  1025 void claim () throws javax.usb.UsbClaimException,javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbDisconnectedException
+  1025 void claim (javax.usb.UsbInterfacePolicy) throws javax.usb.UsbClaimException,javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbDisconnectedException
+  1025 void release () throws javax.usb.UsbClaimException,javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbDisconnectedException
   1025 boolean isClaimed ()
   1025 boolean isActive ()
   1025 int getNumSettings ()
@@ -153,7 +162,7 @@
   1025 boolean containsUsbEndpoint (byte)
   1025 javax.usb.UsbConfiguration getUsbConfiguration ()
   1025 javax.usb.UsbInterfaceDescriptor getUsbInterfaceDescriptor ()
-  1025 java.lang.String getInterfaceString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException
+  1025 java.lang.String getInterfaceString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException,javax.usb.UsbDisconnectedException
 }
 1537 javax.usb.UsbInterfaceDescriptor implements javax.usb.UsbDescriptor
 {
@@ -167,8 +176,6 @@
 }
 1537 javax.usb.UsbInterfacePolicy
 {
-  1025 boolean release (javax.usb.UsbInterface,java.lang.Object)
-  1025 boolean open (javax.usb.UsbPipe,java.lang.Object)
   1025 boolean forceClaim (javax.usb.UsbInterface)
 }
 1537 javax.usb.UsbIrp
@@ -220,19 +227,18 @@
 }
 1537 javax.usb.UsbPipe
 {
-  1025 void open () throws javax.usb.UsbPolicyDenied,javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotClaimedException
-  1025 void open (java.lang.Object) throws javax.usb.UsbPolicyDenied,javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotClaimedException
-  1025 void close () throws javax.usb.UsbException,javax.usb.UsbNotOpenException
+  1025 void open () throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotClaimedException,javax.usb.UsbDisconnectedException
+  1025 void close () throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotOpenException,javax.usb.UsbDisconnectedException
   1025 boolean isActive ()
   1025 boolean isOpen ()
   1025 javax.usb.UsbEndpoint getUsbEndpoint ()
-  1025 int syncSubmit (byte[]) throws javax.usb.UsbException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException
-  1025 javax.usb.UsbIrp asyncSubmit (byte[]) throws javax.usb.UsbException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException
-  1025 void syncSubmit (javax.usb.UsbIrp) throws javax.usb.UsbException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException
-  1025 void asyncSubmit (javax.usb.UsbIrp) throws javax.usb.UsbException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException
-  1025 void syncSubmit (java.util.List) throws javax.usb.UsbException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException
-  1025 void asyncSubmit (java.util.List) throws javax.usb.UsbException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException
-  1025 void abortAllSubmissions () throws javax.usb.UsbNotOpenException
+  1025 int syncSubmit (byte[]) throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 javax.usb.UsbIrp asyncSubmit (byte[]) throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 void syncSubmit (javax.usb.UsbIrp) throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 void asyncSubmit (javax.usb.UsbIrp) throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 void syncSubmit (java.util.List) throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 void asyncSubmit (java.util.List) throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotOpenException,java.lang.IllegalArgumentException,javax.usb.UsbDisconnectedException
+  1025 void abortAllSubmissions () throws javax.usb.UsbNotActiveException,javax.usb.UsbNotOpenException,javax.usb.UsbDisconnectedException
   1025 javax.usb.UsbIrp createUsbIrp ()
   1025 javax.usb.UsbControlIrp createUsbControlIrp (byte,byte,short,short)
   1025 void addUsbPipeListener (javax.usb.event.UsbPipeListener)
@@ -250,11 +256,6 @@
   1 javax.usb.UsbPlatformException ()
   1 java.lang.Exception getPlatformException ()
   1 int getErrorCode ()
-}
-1 javax.usb.UsbPolicyDenied extends javax.usb.UsbException
-{
-  1 javax.usb.UsbPolicyDenied (java.lang.String)
-  1 javax.usb.UsbPolicyDenied ()
 }
 1537 javax.usb.UsbPort
 {
@@ -296,14 +297,15 @@
 }
 1 javax.usb.event.UsbDeviceDataEvent extends javax.usb.event.UsbDeviceEvent
 {
-  1 javax.usb.event.UsbDeviceDataEvent (javax.usb.UsbDevice,javax.usb.UsbControlIrp,byte[],int,int) throws java.lang.IllegalArgumentException
-  1 javax.usb.UsbControlIrp getUsbControlIrp ()
+  1 javax.usb.event.UsbDeviceDataEvent (javax.usb.UsbDevice,javax.usb.UsbControlIrp)
   1 byte[] getData ()
+  1 javax.usb.UsbControlIrp getUsbControlIrp ()
 }
 1 javax.usb.event.UsbDeviceErrorEvent extends javax.usb.event.UsbDeviceEvent
 {
-  1 javax.usb.event.UsbDeviceErrorEvent (javax.usb.UsbDevice,javax.usb.UsbException)
+  1 javax.usb.event.UsbDeviceErrorEvent (javax.usb.UsbDevice,javax.usb.UsbControlIrp)
   1 javax.usb.UsbException getUsbException ()
+  1 javax.usb.UsbControlIrp getUsbControlIrp ()
 }
 1 javax.usb.event.UsbDeviceEvent extends java.util.EventObject
 {
@@ -318,19 +320,24 @@
 }
 1 javax.usb.event.UsbPipeDataEvent extends javax.usb.event.UsbPipeEvent
 {
-  1 javax.usb.event.UsbPipeDataEvent (javax.usb.UsbPipe,javax.usb.UsbIrp,byte[],int,int) throws java.lang.IllegalArgumentException
-  1 javax.usb.UsbIrp getUsbIrp ()
+  1 javax.usb.event.UsbPipeDataEvent (javax.usb.UsbPipe,javax.usb.UsbIrp)
+  1 javax.usb.event.UsbPipeDataEvent (javax.usb.UsbPipe,byte[],int)
   1 byte[] getData ()
+  1 int getActualLength ()
 }
 1 javax.usb.event.UsbPipeErrorEvent extends javax.usb.event.UsbPipeEvent
 {
+  1 javax.usb.event.UsbPipeErrorEvent (javax.usb.UsbPipe,javax.usb.UsbIrp)
   1 javax.usb.event.UsbPipeErrorEvent (javax.usb.UsbPipe,javax.usb.UsbException)
   1 javax.usb.UsbException getUsbException ()
 }
 1 javax.usb.event.UsbPipeEvent extends java.util.EventObject
 {
+  1 javax.usb.event.UsbPipeEvent (javax.usb.UsbPipe,javax.usb.UsbIrp)
   1 javax.usb.event.UsbPipeEvent (javax.usb.UsbPipe)
   1 javax.usb.UsbPipe getUsbPipe ()
+  1 boolean hasUsbIrp ()
+  1 javax.usb.UsbIrp getUsbIrp ()
 }
 1537 javax.usb.event.UsbPipeListener implements java.util.EventListener
 {
@@ -441,4 +448,50 @@
   9 java.lang.String getSpeedString (java.lang.Object)
   9 javax.usb.UsbDevice synchronizedUsbDevice (javax.usb.UsbDevice)
   9 javax.usb.UsbPipe synchronizedUsbPipe (javax.usb.UsbPipe)
+}
+9 javax.usb.util.UsbUtil$SynchronizedUsbDevice extends java.lang.Object implements javax.usb.UsbDevice
+{
+  1 javax.usb.util.UsbUtil$SynchronizedUsbDevice (javax.usb.UsbDevice)
+  1 javax.usb.UsbPort getParentUsbPort ()
+  1 boolean isUsbHub ()
+  1 java.lang.String getManufacturerString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException
+  1 java.lang.String getSerialNumberString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException
+  1 java.lang.String getProductString () throws javax.usb.UsbException,java.io.UnsupportedEncodingException
+  1 java.lang.Object getSpeed ()
+  1 java.util.List getUsbConfigurations ()
+  1 javax.usb.UsbConfiguration getUsbConfiguration (byte)
+  1 boolean containsUsbConfiguration (byte)
+  1 byte getActiveUsbConfigurationNumber ()
+  1 javax.usb.UsbConfiguration getActiveUsbConfiguration ()
+  1 boolean isConfigured ()
+  1 javax.usb.UsbDeviceDescriptor getUsbDeviceDescriptor ()
+  1 javax.usb.UsbStringDescriptor getUsbStringDescriptor (byte) throws javax.usb.UsbException
+  1 java.lang.String getString (byte) throws javax.usb.UsbException,java.io.UnsupportedEncodingException
+  1 void syncSubmit (javax.usb.UsbControlIrp) throws javax.usb.UsbException
+  1 void asyncSubmit (javax.usb.UsbControlIrp) throws javax.usb.UsbException
+  1 void syncSubmit (java.util.List) throws javax.usb.UsbException
+  1 void asyncSubmit (java.util.List) throws javax.usb.UsbException
+  1 javax.usb.UsbControlIrp createUsbControlIrp (byte,byte,short,short)
+  1 void addUsbDeviceListener (javax.usb.event.UsbDeviceListener)
+  1 void removeUsbDeviceListener (javax.usb.event.UsbDeviceListener)
+}
+9 javax.usb.util.UsbUtil$SynchronizedUsbPipe extends java.lang.Object implements javax.usb.UsbPipe
+{
+  1 javax.usb.util.UsbUtil$SynchronizedUsbPipe (javax.usb.UsbPipe)
+  1 void open () throws javax.usb.UsbException,javax.usb.UsbNotActiveException,javax.usb.UsbNotClaimedException
+  1 void close () throws javax.usb.UsbException,javax.usb.UsbNotOpenException
+  1 boolean isActive ()
+  1 boolean isOpen ()
+  1 javax.usb.UsbEndpoint getUsbEndpoint ()
+  1 int syncSubmit (byte[]) throws javax.usb.UsbException,javax.usb.UsbNotOpenException
+  1 javax.usb.UsbIrp asyncSubmit (byte[]) throws javax.usb.UsbException,javax.usb.UsbNotOpenException
+  1 void syncSubmit (javax.usb.UsbIrp) throws javax.usb.UsbException,javax.usb.UsbNotOpenException
+  1 void asyncSubmit (javax.usb.UsbIrp) throws javax.usb.UsbException,javax.usb.UsbNotOpenException
+  1 void syncSubmit (java.util.List) throws javax.usb.UsbException,javax.usb.UsbNotOpenException
+  1 void asyncSubmit (java.util.List) throws javax.usb.UsbException,javax.usb.UsbNotOpenException
+  1 void abortAllSubmissions () throws javax.usb.UsbNotOpenException
+  1 javax.usb.UsbIrp createUsbIrp ()
+  1 javax.usb.UsbControlIrp createUsbControlIrp (byte,byte,short,short)
+  1 void addUsbPipeListener (javax.usb.event.UsbPipeListener)
+  1 void removeUsbPipeListener (javax.usb.event.UsbPipeListener)
 }

@@ -312,7 +312,7 @@ public class DefaultControlPipeTestErrorConditions extends TestCase
         usbControlIrpOUT.setData(OUTbuffer);
 
         //Don't check return on send because exceptions must be verified in this test
-        SendUsbControlIrp(SyncOrAsync, usbDevice, usbControlIrpOUT, caughtException);
+        caughtException = SendUsbControlIrp(SyncOrAsync, usbDevice, usbControlIrpOUT);
 
         //set generic LastUsbDeviceEvent
         LastUsbDeviceEvent = null;
@@ -387,7 +387,7 @@ public class DefaultControlPipeTestErrorConditions extends TestCase
             usbControlIrpIN.setAcceptShortPacket(INIrpAcceptShortPacket);
 
             //Don't check return on send because exceptions must be verified in this test
-            SendUsbControlIrp(SyncOrAsync, usbDevice, usbControlIrpIN, caughtException);
+			caughtException = SendUsbControlIrp(SyncOrAsync, usbDevice, usbControlIrpIN);
 
             //set generic LastUsbDeviceEvent
             LastUsbDeviceEvent = null;
@@ -537,7 +537,7 @@ public class DefaultControlPipeTestErrorConditions extends TestCase
 
         }
 
-        SendUsbControlIrp(SyncOrAsync, usbDevice, usbControlIrp, caughtException);
+		caughtException = SendUsbControlIrp(SyncOrAsync, usbDevice, usbControlIrp);
 
         //set generic LAstUsbDeviceEvent
         UsbDeviceEvent LastUsbDeviceEvent = null;
@@ -579,7 +579,7 @@ public class DefaultControlPipeTestErrorConditions extends TestCase
         if ( (SyncOrAsync == SYNC_SUBMIT) && (expectedException != null) )
         {
             assertEquals("For sync submit, expected exceptions should be thrown on submit",
-                         expectedException, caughtException);
+                         expectedException.getClass(), caughtException.getClass());
         }
         else if ( (SyncOrAsync == ASYNC_SUBMIT) && (caughtException != null) )
         {
@@ -631,9 +631,9 @@ public class DefaultControlPipeTestErrorConditions extends TestCase
      * @param caughtException
      * @return
      */
-    private boolean SendUsbControlIrp(boolean SyncOrAsync, UsbDevice usbDevice, UsbControlIrp usbControlIrp, Exception caughtException)
+    private Exception SendUsbControlIrp(boolean SyncOrAsync, UsbDevice usbDevice, UsbControlIrp usbControlIrp)
     {
-        boolean sendSuccessful = false;
+    	Exception caughtException = null;
         try
         {
             if ( SyncOrAsync == SYNC_SUBMIT )
@@ -648,9 +648,8 @@ public class DefaultControlPipeTestErrorConditions extends TestCase
             assertTrue("isComplete() not true for IRP after waitUntilComplete(..)", usbControlIrp.isComplete());
 
             numSubmits++;
-            sendSuccessful = true;
         }
-        catch ( UsbException uE )
+        catch ( Exception uE )
         {
             /* The exception sould indicate the reason for the failure.
              * For this example, we'll just stop trying.
@@ -663,7 +662,6 @@ public class DefaultControlPipeTestErrorConditions extends TestCase
             //fail("DCP submission failed." + uE.getMessage());
             //System.out.println("DCP submission failed : " + uE.getMessage());
 
-            sendSuccessful = false;
         }
         finally
         {
@@ -694,7 +692,7 @@ public class DefaultControlPipeTestErrorConditions extends TestCase
                 //e.printStackTrace();
             }
         }
-        return sendSuccessful;
+        return caughtException;
     };
 
     /*
