@@ -1,0 +1,87 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<title>Instructions to Gather Files for Image Build Process</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<h2 align="center">Gathering Necessary Files</h2>
+
+<br>
+
+<p>The following steps explain how to set up your system, in order to be able to build
+the BULKINT.B6, ISODCP.B6 and TOPOLOGY.B6 images for running the JSR80 javax.USB TCK 
+tests.  Please set up the subdirectories and files just as is listed below, or the build
+files will not be able to locate the necessary files.  </p>
+
+<p><strong>Note: The locations listed for the files provided through the installation
+ of the Cypress EZ-USB FX Development Kit are based on a typical installation and a custom
+ installation may change the location of those files on your system.</strong></p>
+
+
+<p><strong>Steps to Gather the Files:</strong><p>
+
+<ol>
+<li>Create a subdirectory on the root of your system called "TCK".
+<li>In the new TCK subdirectory, create the following three subdirectories: "BULKINT", "ISODCP", "TOPOLOGY".
+<li>In the new BULKINT subdirectory, create a subdirectory called "SUPPORT".
+<li>In the new ISODCP subdirectory, create a subdirectory called "SUPPORT".
+<li>In the new TOPOLOGY subdirectory, create a subdirectory called "SUPPORT".
+<li>Copy the following files from the locations listed next to them into all three SUPPORT subdirectories, which were created in steps 3, 4 and 5:
+    <ul><p><i>&nbsp;&nbsp;&nbsp;&nbsp;FILE</i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <i>LOCATION</i></p></ul>
+  <ul><li>HEX2BIX.EXE  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  c:\Cypress\USB\Bin</li></ul>
+  <ul><li>EZUSB.LIB&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  c:\Cypress\USB\Target\Lib\Ezusb</li></ul>
+  <ul><li>USBJMPTB.OBJ &nbsp;&nbsp;===&nbsp;&nbsp;  c:\Cypress\USB\Target\Lib\Ezusb</li></ul>
+  <br>
+<li>Copy the following files from the locations listed next to them into the BULKINT, ISODCP and TOPOLOGY subdirectories, which were created in step 2:
+    <ul><p><i>&nbsp;&nbsp;&nbsp;&nbsp;FILE</i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <i>LOCATION</i></p></ul>
+  <ul><li>FW.C         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  get the base from C:\Cypress\USB\Target\Fw\Ezusb</li></ul>
+  <ul><li>PERIPH.C     &nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  get the base from C:\Cypress\USB\Target\Fw\Ezusb</li></ul>
+  <ul><li>EZUSB.H      &nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  c:\Cypress\USB\Target\Inc</li></ul>
+  <ul><li>EZREGS.H     &nbsp;&nbsp;===&nbsp;&nbsp;  c:\Cypress\USB\Target\Inc</li></ul>
+  <br>
+<li>Copy the following files from the locations listed next to them into the BULKINT subdirectory, which was created in step 2:
+    <ul><p><i>&nbsp;&nbsp;&nbsp;&nbsp;FILE</i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <i>LOCATION</i></p></ul>
+  <ul><li>BULKINT.BAT  &nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>ABUILD.BAT   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>DSCR.A51     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>DSCR.H       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <br>
+<li>Copy the following files from the locations listed next to them into the ISODCP subdirectory, which was created in step 2:
+    <ul><p><i>&nbsp;&nbsp;&nbsp;&nbsp;FILE</i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <i>LOCATION</i></p></ul>
+  <ul><li>ISODCP.BAT   &nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>ABUILD.BAT   &nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>DSCR.A51     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>DSCR.H       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <br>
+<li>Copy the following files from the locations listed next to them into the TOPOLOGY subdirectory, which was created in step 2:
+    <ul><p><i>&nbsp;&nbsp;&nbsp;&nbsp;FILE</i>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <i>LOCATION</i></p></ul>
+  <ul><li>TOPOLOGY.BAT &nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>ABUILD.BAT   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>DSCR.A51     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <ul><li>DSCR.H       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;===&nbsp;&nbsp;  source subdirectory of the extracted archive (e.g. /javaxusbtck-1_0/source)</li></ul>
+  <br>
+</ol>
+<hr>
+
+<br>
+<p>Author: <a href="Tckteam.html">TCK Team</a></p>
+<hr>
+<br>
+<div align="center">
+<p><a href="index.html">Introduction</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="install.html">Installation Instructions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="images.html">Building the Images</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="running.html">Running the Tests</a>&nbsp;&nbsp;|&nbsp;&nbsp;</p>
+<a href="test_descriptions.html">Test Descriptions</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="appeals.pdf">Appeals Process</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+<a href="changes.html">Change History</a>
+</div>
+
+</body>
+</html>
+
