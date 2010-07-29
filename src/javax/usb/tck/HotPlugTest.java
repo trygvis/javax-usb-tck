@@ -69,6 +69,7 @@ public class HotPlugTest extends TestCase
         usbDevice =
             FindProgrammableDevice.getInstance().getProgrammableDevice();
 
+        assertNotNull("USB Device was not found", usbDevice);
         assertTrue("USB Device was not configured", usbDevice.isConfigured());
 
         // add a listener to receive events when the host has changes

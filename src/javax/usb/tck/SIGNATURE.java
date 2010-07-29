@@ -1,26 +1,14 @@
 package javax.usb.tck;
-
-/**
- * Copyright (c) 2004, International Business Machines Corporation.
- * All Rights Reserved.
- *
- * This software is provided and licensed under the terms and conditions
- * of the Common Public License:
- * http://oss.software.ibm.com/developerworks/opensource/license-cpl.html
- */
-
-
+ 
 import junit.framework.*;
 
 /**
  * This class executes the following tests of the Javax.usb TCK Test Suite:
  * <ul>
- * <li> Topology Test (configuration 2)
+ * <li> Signature Test
  * </ul>
- * @author Leslie K. Blair
  */
-
-public class CONFIG2_TOPOLOGY_B6_IMAGE extends TestCase
+public class SIGNATURE extends TestCase
 {
     public static Test suite()
     {
@@ -30,7 +18,8 @@ public class CONFIG2_TOPOLOGY_B6_IMAGE extends TestCase
         //Add tests to the test suite.
         //Each method beginning with testXXX() in the specified class will
         //be called as a separate test.
-        testSuite.addTestSuite(TopologyTestConfig2.class);
+        testSuite.addTestSuite(SignatureTest.class);
+        //The SynchFrame does not work with the Cypress Board                                    @P1D3
         return testSuite;
     }
 

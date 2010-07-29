@@ -69,7 +69,7 @@ public class TopologyTestConfig2 extends TestCase implements TopologyTests
         }
         catch ( UsbException uE )
         {
-            fail("An error occurred when attempting to create the UsbServices implementation");         
+            fail("An error occurred when attempting to create the UsbServices implementation");
         }
         catch ( SecurityException sE )
         {

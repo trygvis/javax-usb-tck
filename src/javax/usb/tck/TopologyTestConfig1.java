@@ -14,6 +14,7 @@ import java.util.*;
 import junit.framework.*;
 
 import javax.usb.*;
+import javax.usb.tck.topology.*;
 
 /**
  * Topology Test Configuration 1 - Tests Topology Hardware Configuration 1
@@ -43,12 +44,20 @@ public class TopologyTestConfig1 extends TestCase implements TopologyTests
     {
     }
 
+    public void testTopologyConfigOne() throws Exception {
+        Topology1.descriptor.writeTo(System.out);
+
+        TopologyTckDescriptor.
+            fromXml(getClass().getResource("/topology-1.xml")).
+            doAsserts(UsbHostManager.getUsbServices());
+    }
+
     /**
      * Tests Hardware Configuration 1 from the Javax.usb TCK
      * specification.
      * @throws Exception
      */
-    public void testTopologyConfigOne() throws Exception {
+    public void XXXtestTopologyConfigOne() throws Exception {
         UsbServices usbUsbServices = null;
         UsbHub usbVirtualRootUsbHub = null;
         UsbDevice usbProgramableDevice = null;
@@ -67,7 +76,7 @@ public class TopologyTestConfig1 extends TestCase implements TopologyTests
         }
         catch ( UsbException uE )
         {
-            fail("An error occurred when attempting to create the UsbServices implementation");         
+            fail("An error occurred when attempting to create the UsbServices implementation");
         }
         catch ( SecurityException sE )
         {
@@ -157,7 +166,7 @@ public class TopologyTestConfig1 extends TestCase implements TopologyTests
                      programableVendorID, usbProgramableDevDescriptor.idVendor());       
         assertEquals("The Product ID doesn't match the programable device Product ID",
                      programableProductID, usbProgramableDevDescriptor.idProduct());
-        assertEquals("The programable device should be full speed!", 
+        assertEquals("The programable device should be full speed!",
                      UsbConst.DEVICE_SPEED_FULL, usbProgramableDevice.getSpeed());
     }
 }

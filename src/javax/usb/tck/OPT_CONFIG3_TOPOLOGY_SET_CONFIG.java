@@ -50,6 +50,6 @@ public class OPT_CONFIG3_TOPOLOGY_SET_CONFIG extends TestCase
     public static void main(String[] argv)
     {
         //use the textual Test Runner to call the test suite
-        junit.textui.TestRunner.run(suite());
+        System.exit(junit.textui.TestRunner.run(suite()).wasSuccessful() ? 0 : 1);
     }
 }
